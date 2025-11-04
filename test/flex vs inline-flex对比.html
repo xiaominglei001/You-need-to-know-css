@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flex vs Inline-Flex</title>
+    <style>
+        /* 基础样式，用于区分元素 */
+        .container {
+            border: 2px solid #333;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+        .item {
+            background-color: #f0ad4e;
+            color: white;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+
+        /* Flex 容器 */
+        .flex-container {
+            display: flex;
+        }
+
+        /* Inline-Flex 容器 */
+        .inline-flex-container {
+            display: inline-flex;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Flex vs. Inline-Flex</h1>
+
+    <h2>display: flex</h2>
+    <p><code>display: flex</code> 使容器成为一个块级（block-level）弹性容器。它会占据父元素的整个宽度，并且其后的元素会另起一行。</p>
+    <div class="container flex-container">
+        <div class="item">Item 1</div>
+        <div class="item">Item 2</div>
+        <div class="item">Item 3</div>
+    </div>
+    <span>这是一个紧跟在 flex 容器后面的 span 元素。</span>
+
+    <hr style="margin: 40px 0;">
+
+    <h2>display: inline-flex</h2>
+    <p><code>display: inline-flex</code> 使容器成为一个行内级（inline-level）弹性容器。容器本身不会填满整个父元素宽度，而是根据其内容调整大小，并且可以与其他行内元素（如文本）并排显示。</p>
+    <div class="container inline-flex-container">
+        <div class="item">Item 1</div>
+        <div class="item">Item 2</div>
+        <div class="item">Item 3</div>
+    </div>
+    <span>这是一个紧跟在 inline-flex 容器后面的 span 元素。</span>
+
+</body>
+</html>
