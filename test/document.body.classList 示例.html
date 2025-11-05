@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>document.body.classList 示例</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            line-height: 1.6;
+            transition: background-color .2s ease, color .2s ease;
+            background: #f4f7fc;
+            color: #333;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #1976d2;
+            color: #fff;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header .title {
+            font-weight: 600;
+        }
+
+        .tools {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #f5f5f5;
+        }
+
+        .main {
+            padding: 16px;
+            height: calc(100vh - 56px);
+            overflow: auto;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+        }
+
+        /* 通过给 body 切换类名来控制场景样式 */
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .header {
+            background: #263238;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .card {
+            background: #1e1e1e;
+            border-color: #424242;
+            box-shadow: none;
+        }
+
+        body.no-scroll {
+            overflow: hidden;
+        }
+
+        body.hide-header .header {
+            display: none !important;
+        }
+
+        body.hide-header .main {
+            height: 100vh;
+        }
+
+        /* 补偿头部隐藏后的高度变化 */
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="title">类名驱动的全局样式</div>
+        <div class="tools">
+            <button id="btnDark">切换暗色模式</button>
+            <button id="btnScroll">禁止/恢复滚动</button>
+            <button id="btnHeader">隐藏/显示头部</button>
+            <button id="btnReset">重置类名</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="card">
+            <h3>说明</h3>
+            <p>通过给 body 添加/移除类名，统一切换全局样式，而不需要逐个修改组件或元素样式。</p>
+        </div>
+        <div class="card">
+            <h3>内容区域（滚动测试）</h3>
+            <p>下面是大量文本，用于测试滚动与禁止滚动的效果。</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+            <p>这是一段示例文本。为了演示滚动，我们需要一些内容……</p>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 切换类名：如果存在则移除，不存在则添加
+         * @param {string} className 目标类名
+         * @returns {boolean} 返回切换后的存在状态（true 表示已启用）
+         */
+        function toggleBodyClass(className) {
+            document.body.classList.toggle(className);
+            return document.body.classList.contains(className);
+        }
+
+        /**
+         * 添加类名：保证幂等（不会重复添加），适合在进入某个场景时调用
+         * @param {string} className 目标类名
+         */
+        function addBodyClass(className) {
+            if (!document.body.classList.contains(className)) {
+                document.body.classList.add(className);
+            }
+        }
+
+        /**
+         * 移除类名：保证幂等（不存在也安全），适合在退出某个场景时调用
+         * @param {string} className 目标类名
+         */
+        function removeBodyClass(className) {
+            document.body.classList.remove(className);
+        }
+
+        /**
+         * 重置：移除示例中用到的所有类名，使页面恢复到初始状态
+         */
+        function resetBodyClasses() {
+            removeBodyClass('dark-mode');
+            removeBodyClass('no-scroll');
+            removeBodyClass('hide-header');
+        }
+
+        // 事件绑定（按钮驱动）
+        document.getElementById('btnDark').addEventListener('click', function () {
+            const enabled = toggleBodyClass('dark-mode');
+            this.textContent = enabled ? '关闭暗色模式' : '切换暗色模式';
+        });
+
+        document.getElementById('btnScroll').addEventListener('click', function () {
+            const enabled = toggleBodyClass('no-scroll');
+            this.textContent = enabled ? '恢复滚动' : '禁止/恢复滚动';
+        });
+
+        document.getElementById('btnHeader').addEventListener('click', function () {
+            const enabled = toggleBodyClass('hide-header');
+            this.textContent = enabled ? '显示头部' : '隐藏/显示头部';
+        });
+
+        document.getElementById('btnReset').addEventListener('click', function () {
+            resetBodyClasses();
+            document.getElementById('btnDark').textContent = '切换暗色模式';
+            document.getElementById('btnScroll').textContent = '禁止/恢复滚动';
+            document.getElementById('btnHeader').textContent = '隐藏/显示头部';
+        });
+    </script>
+</body>
+
+</html>

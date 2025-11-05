@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>box-sizing 解析与可视化示例</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --card: #111827;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --accent: #5d2de6;
+        --accent-2: #22d3ee;
+        --good: #10b981;
+        --warn: #f59e0b;
+      }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      a { color: var(--accent-2); text-decoration: none; }
+
+      .container {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+      }
+      .subtitle { color: var(--muted); margin-top: 6px; }
+
+      .section { margin-top: 24px; }
+      .card {
+        background: var(--card);
+        border: 1px solid #1f2937;
+        border-radius: 12px;
+        padding: 20px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .controls { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+      .control label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+      .control input[type="range"] { width: 100%; }
+      .btn {
+        border: 1px solid #374151;
+        background: #0b1220;
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+      .btn:hover { border-color: #4b5563; }
+
+      /* 可视化示例盒子基础样式 */
+      .demo-box {
+        position: relative;
+        margin-top: 12px;
+        background: linear-gradient(135deg, #0b1220 0%, #0e1526 100%);
+        border: 8px solid var(--accent);
+        padding: 24px;
+        width: 320px; /* 将由 JS 动态更新 */
+        min-height: 120px;
+        border-radius: 8px;
+        color: var(--text);
+        transition: width .15s ease, padding .15s ease, border-width .15s ease;
+      }
+
+      /* 两种盒模型开关 */
+      .content-box { box-sizing: content-box; }
+      .border-box  { box-sizing: border-box; }
+
+      .demo-box h4 { margin: 0 0 6px; font-size: 16px; }
+      .legend { font-size: 12px; color: var(--muted); }
+
+      /* 叠加层：以半透明块标注内容区与填充/边框占用 */
+      .overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .overlay .content-area {
+        position: absolute;
+        background: rgba(16, 185, 129, 0.18); /* 内容区绿色 */
+        border: 1px dashed rgba(16, 185, 129, 0.8);
+      }
+      .overlay .padding-area {
+        position: absolute;
+        background: rgba(245, 158, 11, 0.18); /* padding 区橙色 */
+        border: 1px dashed rgba(245, 158, 11, 0.8);
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+      .metric { background: #0b1220; border: 1px solid #1f2937; border-radius: 6px; padding: 6px 8px; }
+      .metric strong { color: #cbd5e1; }
+
+      pre.code {
+        background: #0b1220;
+        border: 1px solid #1f2937;
+        border-radius: 8px;
+        padding: 16px;
+        overflow: auto;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      code { color: #eab308; }
+      .tip { color: var(--muted); font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="title">box-sizing 的作用与可视化解析</div>
+      <div class="subtitle">直观理解 content-box 与 border-box 的尺寸计算区别，并提供交互式示例。</div>
+
+      <!-- 作用与差异说明 -->
+      <div class="section card">
+        <div class="title" style="font-size:20px">核心作用</div>
+        <ul>
+          <li>控制 CSS 的 <code>width</code>/<code>height</code> 指向的盒模型：是“内容盒”还是“边框盒”。</li>
+          <li><code>content-box</code>（默认）：<code>width</code> 仅表示内容区宽度，实际占用 = 内容 + 内边距 + 边框。</li>
+          <li><code>border-box</code>：<code>width</code> 表示整体占用（边框盒）宽度，内容区会自动扣除内边距与边框。</li>
+          <li>搭配响应式布局时更可控，避免“指定宽度 + padding/border 后溢出”的问题。</li>
+          <li>常见做法是全局设置 <code>* { box-sizing: border-box; }</code> 以降低尺寸心智负担。</li>
+        </ul>
+      </div>
+
+      <!-- 控件与可视化区域 -->
+      <div class="section card">
+        <div class="title" style="font-size:20px">交互式可视化</div>
+        <div class="controls" style="margin-top:12px">
+          <div class="control">
+            <label>指定 CSS 宽度（px）</label>
+            <input id="widthInput" type="range" min="160" max="520" step="10" value="320" />
+          </div>
+          <div class="control">
+            <label>内边距 padding（px）</label>
+            <input id="paddingInput" type="range" min="0" max="80" step="2" value="24" />
+          </div>
+          <div class="control">
+            <label>边框宽度（px）</label>
+            <input id="borderInput" type="range" min="0" max="24" step="1" value="8" />
+          </div>
+          <button id="resetBtn" class="btn" title="恢复默认值">重置</button>
+        </div>
+
+        <div class="grid" style="margin-top:16px">
+          <div>
+            <div class="legend">左侧：content-box（width = 内容区）</div>
+            <div id="boxContent" class="demo-box content-box">
+              <h4>content-box</h4>
+              <div class="legend">指定的 <code>width</code> 是内容区宽度</div>
+              <div class="overlay">
+                <div id="contentOverlay1" class="content-area"></div>
+                <div id="paddingOverlay1" class="padding-area"></div>
+              </div>
+              <div class="metrics">
+                <div class="metric"><strong>CSS width:</strong> <span id="m1CssWidth">-</span></div>
+                <div class="metric"><strong>实际占用:</strong> <span id="m1RectWidth">-</span></div>
+                <div class="metric"><strong>内容区宽:</strong> <span id="m1ContentWidth">-</span></div>
+                <div class="metric"><strong>paddingX:</strong> <span id="m1PaddingX">-</span></div>
+                <div class="metric"><strong>borderX:</strong> <span id="m1BorderX">-</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="legend">右侧：border-box（width = 整体占用）</div>
+            <div id="boxBorder" class="demo-box border-box" style="border-color: var(--accent-2)">
+              <h4>border-box</h4>
+              <div class="legend">指定的 <code>width</code> 是整体占用（边框盒）宽度</div>
+              <div class="overlay">
+                <div id="contentOverlay2" class="content-area"></div>
+                <div id="paddingOverlay2" class="padding-area"></div>
+              </div>
+              <div class="metrics">
+                <div class="metric"><strong>CSS width:</strong> <span id="m2CssWidth">-</span></div>
+                <div class="metric"><strong>实际占用:</strong> <span id="m2RectWidth">-</span></div>
+                <div class="metric"><strong>内容区宽:</strong> <span id="m2ContentWidth">-</span></div>
+                <div class="metric"><strong>paddingX:</strong> <span id="m2PaddingX">-</span></div>
+                <div class="metric"><strong>borderX:</strong> <span id="m2BorderX">-</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="tip" style="margin-top:12px">
+          提示：拖动上面的滑块分别改变 <code>width</code>、<code>padding</code> 与 <code>border</code>，观察两种盒模型下“实际占用”与“内容区”的变化差异。
+        </p>
+      </div>
+
+      <!-- 推荐实践与常见代码片段 -->
+      <div class="section card">
+        <div class="title" style="font-size:20px">推荐实践</div>
+        <p>在大多数应用/组件中，使用边框盒（<code>border-box</code>）更符合直觉：指定的宽度就是控件在页面上的实际占用宽度。</p>
+        <pre class="code"><code>/* 推荐的全局设置写法一（继承型，更安全） */
+html { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+
+/* 简洁写法二（直接全局） */
+* { box-sizing: border-box; }
+
+/* 组件局部覆盖：需要内容区固定尺寸时可单独设置 */
+.some-component__content { box-sizing: content-box; }
+</code></pre>
+        <ul>
+          <li>在 <code>flex</code>/<code>grid</code> 布局中，<code>border-box</code> 常能避免因 <code>padding</code>/<code>border</code> 导致的换行或挤压。</li>
+          <li>与 <code>min/max-width</code>、百分比宽度一起使用时，<code>border-box</code> 更易于“宽度即占用”的设计思维。</li>
+          <li>如需计算内容区的确切宽度，可通过 JS 读取 <code>getBoundingClientRect()</code> 并减去内边距与边框。</li>
+        </ul>
+      </div>
+
+      <!-- 代码示例：可复制的小片段 -->
+      <div class="section card">
+        <div class="title" style="font-size:20px">最小示例对比</div>
+        <pre class="code"><code>/* content-box: width 仅指内容区 */
+.box-a { box-sizing: content-box; width: 320px; padding: 24px; border: 8px solid #5d2de6; }
+
+/* border-box: width 指整体占用 */
+.box-b { box-sizing: border-box;  width: 320px; padding: 24px; border: 8px solid #22d3ee; }
+</code></pre>
+      </div>
+    </div>
+
+    <script>
+      /**
+       * 格式化像素值为带单位的字符串
+       * 目的：在指标展示中统一数值格式，例如 320 -> "320px"
+       * @param {number} n - 数值（像素）
+       * @returns {string} 格式化后的字符串
+       */
+      function px(n) { return Math.round(n) + 'px'; }
+
+      /**
+       * 读取并计算元素的尺寸指标
+       * 目的：可视化显示 CSS width、实际占用宽度（rect）、内容区宽度、水平 padding/border 总和
+       * 原理：使用 getComputedStyle + getBoundingClientRect，按盒模型扣减得到内容区
+       * @param {HTMLElement} el - 目标元素
+       * @returns {{boxSizing:string, cssWidth:number, rectWidth:number, contentWidth:number, paddingX:number, borderX:number}} 指标对象
+       */
+      function getMetrics(el) {
+        const cs = getComputedStyle(el);
+        const rectWidth = el.getBoundingClientRect().width;
+        const cssWidth = parseFloat(cs.width) || 0;
+        const pL = parseFloat(cs.paddingLeft) || 0;
+        const pR = parseFloat(cs.paddingRight) || 0;
+        const bL = parseFloat(cs.borderLeftWidth) || 0;
+        const bR = parseFloat(cs.borderRightWidth) || 0;
+        const paddingX = pL + pR;
+        const borderX = bL + bR;
+        // 内容区宽度 = 实际占用 - 水平 padding - 水平 border
+        const contentWidth = Math.max(0, rectWidth - paddingX - borderX);
+        return {
+          boxSizing: cs.boxSizing,
+          cssWidth,
+          rectWidth,
+          contentWidth,
+          paddingX,
+          borderX
+        };
+      }
+
+      /**
+       * 更新一个示例盒子的视觉与指标展示
+       * 目的：根据当前 state 同步元素的 width/padding/border，并渲染指标与叠加层
+       * @param {HTMLElement} el - 目标盒子元素
+       * @param {{width:number,padding:number,border:number}} state - 当前控制面板状态
+       * @param {{contentId:string,paddingId:string, mCss:string, mRect:string, mContent:string, mPadX:string, mBorX:string}} ids - 相关子节点 ID
+       * @returns {void}
+       */
+      function updateBox(el, state, ids) {
+        // 应用视觉属性
+        el.style.width = state.width + 'px';
+        el.style.padding = state.padding + 'px';
+        el.style.borderWidth = state.border + 'px';
+
+        // 计算指标
+        const m = getMetrics(el);
+        document.getElementById(ids.mCss).textContent    = px(m.cssWidth) + ` (${m.boxSizing})`;
+        document.getElementById(ids.mRect).textContent   = px(m.rectWidth);
+        document.getElementById(ids.mContent).textContent= px(m.contentWidth);
+        document.getElementById(ids.mPadX).textContent   = px(m.paddingX);
+        document.getElementById(ids.mBorX).textContent   = px(m.borderX);
+
+        // 叠加层可视化：内容区与 padding 区域
+        const overlayContent = document.getElementById(ids.contentId);
+        const overlayPadding = document.getElementById(ids.paddingId);
+        // 内容区矩形：距离容器边缘 = border + padding（上/左），宽度 = 内容区宽度，高度近似用元素高度的内容部分（简化）
+        const cs = getComputedStyle(el);
+        const pT = parseFloat(cs.paddingTop) || 0;
+        const pL = parseFloat(cs.paddingLeft) || 0;
+        const bT = parseFloat(cs.borderTopWidth) || 0;
+        const bL = parseFloat(cs.borderLeftWidth) || 0;
+        const rectHeight = el.getBoundingClientRect().height;
+        const borderY = (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+        const paddingY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+        const contentHeight = Math.max(0, rectHeight - borderY - paddingY);
+
+        // 内容区
+        overlayContent.style.left   = (bL + pL) + 'px';
+        overlayContent.style.top    = (bT + pT) + 'px';
+        overlayContent.style.width  = m.contentWidth + 'px';
+        overlayContent.style.height = contentHeight + 'px';
+
+        // padding 区域（仅可视化左/右 padding 的水平范围，垂直同理简化）
+        overlayPadding.style.left   = bL + 'px';
+        overlayPadding.style.top    = bT + 'px';
+        overlayPadding.style.width  = (m.contentWidth + pL + pL) + 'px';
+        overlayPadding.style.height = (contentHeight + pT + pT) + 'px';
+      }
+
+      /**
+       * 根据当前滑块状态更新两个示例盒子
+       * 目的：集中刷新，保持两侧同步，便于对比
+       * @param {{width:number,padding:number,border:number}} state - 控制面板状态
+       * @returns {void}
+       */
+      function updateAll(state) {
+        const box1 = document.getElementById('boxContent');
+        const box2 = document.getElementById('boxBorder');
+        updateBox(box1, state, {
+          contentId: 'contentOverlay1',
+          paddingId: 'paddingOverlay1',
+          mCss: 'm1CssWidth', mRect: 'm1RectWidth', mContent: 'm1ContentWidth', mPadX: 'm1PaddingX', mBorX: 'm1BorderX'
+        });
+        updateBox(box2, state, {
+          contentId: 'contentOverlay2',
+          paddingId: 'paddingOverlay2',
+          mCss: 'm2CssWidth', mRect: 'm2RectWidth', mContent: 'm2ContentWidth', mPadX: 'm2PaddingX', mBorX: 'm2BorderX'
+        });
+      }
+
+      /**
+       * 初始化交互：绑定滑块与按钮事件并做首帧渲染
+       * 目的：为页面提供直觉式的交互体验
+       * @returns {void}
+       */
+      function init() {
+        const widthInput   = document.getElementById('widthInput');
+        const paddingInput = document.getElementById('paddingInput');
+        const borderInput  = document.getElementById('borderInput');
+        const resetBtn     = document.getElementById('resetBtn');
+
+        const state = {
+          width: parseFloat(widthInput.value),
+          padding: parseFloat(paddingInput.value),
+          border: parseFloat(borderInput.value)
+        };
+
+        const rerender = () => updateAll(state);
+        widthInput.addEventListener('input', () => { state.width = parseFloat(widthInput.value); rerender(); });
+        paddingInput.addEventListener('input', () => { state.padding = parseFloat(paddingInput.value); rerender(); });
+        borderInput.addEventListener('input', () => { state.border = parseFloat(borderInput.value); rerender(); });
+        resetBtn.addEventListener('click', () => {
+          widthInput.value = 320; paddingInput.value = 24; borderInput.value = 8;
+          state.width = 320; state.padding = 24; state.border = 8; rerender();
+        });
+
+        rerender();
+      }
+
+      // 启动页面交互
+      init();
+    </script>
+  </body>
+</html>
