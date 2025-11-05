@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSS 选择器交互式介绍</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --accent: #22d3ee;
+            --accent2: #e91e63;
+            --border: #1f2937;
+            --code-bg: #0b1220;
+            --green: #34d399;
+            --yellow: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Microsoft YaHei", "SimHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            border-right: 1px solid var(--border);
+            background: var(--panel);
+            padding: 16px;
+        }
+
+        .sidebar h1 {
+            font-size: 18px;
+            margin: 0 0 8px;
+        }
+
+        .sidebar .desc {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .group-title {
+            font-size: 13px;
+            color: var(--muted);
+            margin: 14px 0 6px;
+        }
+
+        .examples {
+            display: grid;
+            gap: 8px;
+        }
+
+        .example {
+            background: #0e1625;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .example:hover {
+            border-color: var(--accent);
+        }
+
+        .example .name {
+            font-weight: 600;
+        }
+
+        .example .css {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+            font-size: 12px;
+            color: #a5b4fc;
+        }
+
+        .example .note {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .main {
+            padding: 16px 20px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--code-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+            font-size: 13px;
+        }
+
+        button {
+            padding: 10px 12px;
+            background: var(--accent);
+            color: #083344;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button.secondary {
+            background: #1f2937;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        button:hover {
+            filter: brightness(1.05);
+        }
+
+        .info {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            background: #0b1220;
+            border: 1px solid var(--border);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .badge .label {
+            color: var(--muted);
+            margin-right: 6px;
+        }
+
+        .specificity {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+            color: #f59e0b;
+        }
+
+        #playground {
+            background: #0b1220;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 12px;
+        }
+
+        .dom-view,
+        .style-view {
+            background: #0c1321;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px dashed #162033;
+        }
+
+        .dom-view .title,
+        .style-view .title {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .style-view pre {
+            margin: 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+            font-size: 12px;
+            color: #a5b4fc;
+        }
+
+        .card {
+            border: 1px solid #1f2937;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 8px 0;
+            background: #0f1930;
+        }
+
+        .card .title {
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .card .meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .nav {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #1f2937;
+            color: #93c5fd;
+            text-decoration: none;
+        }
+
+        .nav a.active {
+            background: #111827;
+            border-color: #374151;
+        }
+
+        .nav a:hover {
+            background: #0b1a2d;
+            border-color: #234;
+        }
+
+        .list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .item {
+            padding: 6px 10px;
+            background: #0b1a2d;
+            border: 1px solid #22324a;
+            border-radius: 6px;
+            color: #d1d5db;
+        }
+
+        .item[data-role="primary"] {
+            color: var(--green);
+            border-color: #065f46;
+        }
+
+        .post[data-category="css"] .excerpt {
+            color: #93c5fd;
+        }
+
+        /* 伪元素示例：为标题添加一个符号 */
+        .card .title::before {
+            content: "◆";
+            color: var(--yellow);
+            margin-right: 6px;
+        }
+
+        /* :focus 示例：输入框聚焦时样式强调 */
+        .input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(34, 211, 238, .28) inset;
+        }
+
+        /* :checked 示例：勾选时高亮标签文本 */
+        .sample-form input[type="checkbox"]:checked+span {
+            color: var(--green);
+        }
+
+        /* 高亮 JS 命中的元素 */
+        .matched {
+            outline: 2px dashed var(--accent2);
+            outline-offset: 2px;
+            background: rgba(233, 30, 99, .08);
+        }
+
+        .state-panel {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .state-panel label {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        input[type="checkbox"] {
+            accent-color: var(--accent);
+        }
+
+        hr.sep {
+            border: none;
+            border-top: 1px solid #1f2937;
+            margin: 12px 0;
+        }
+
+        .code-note {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        footer.tips {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h1>CSS 选择器互动演示</h1>
+            <div class="desc">点击示例或输入自定义选择器，查看命中元素与权重。</div>
+
+            <div class="group-title">基础选择器</div>
+            <div class="examples">
+                <div class="example" data-selector="div" data-css="div { /* 选择所有 div 元素 */ }">
+                    <div class="name">标签选择器</div>
+                    <div class="css">div</div>
+                    <div class="note">匹配某种标签</div>
+                </div>
+                <div class="example" data-selector=".card" data-css=".card { /* 选择 class 为 card 的元素 */ }">
+                    <div class="name">类选择器</div>
+                    <div class="css">.card</div>
+                    <div class="note">匹配指定类名</div>
+                </div>
+                <div class="example" data-selector="#site-header" data-css="#site-header { /* 选择指定 id 的元素 */ }">
+                    <div class="name">ID 选择器</div>
+                    <div class="css">#site-header</div>
+                    <div class="note">匹配指定 id</div>
+                </div>
+                <div class="example" data-selector="*" data-css="* { /* 通配选择器：匹配所有元素 */ }">
+                    <div class="name">通配选择器</div>
+                    <div class="css">*</div>
+                    <div class="note">匹配所有元素</div>
+                </div>
+
+                <div class="group-title">属性选择器</div>
+                <div class="example" data-selector="[data-role=primary]"
+                    data-css="[data-role=primary] { color: #34d399; }">
+                    <div class="name">等于匹配</div>
+                    <div class="css">[data-role="primary"]</div>
+                    <div class="note">属性值等于时命中</div>
+                </div>
+                <div class="example" data-selector="a[href^=https]"
+                    data-css="a[href^=https] { text-decoration: underline; }">
+                    <div class="name">前缀匹配</div>
+                    <div class="css">a[href^="https"]</div>
+                    <div class="note">值以 https 开头</div>
+                </div>
+                <div class="example" data-selector="a[href$=.com]" data-css="a[href$=.com] { color: #fbbf24; }">
+                    <div class="name">后缀匹配</div>
+                    <div class="css">a[href$=".com"]</div>
+                    <div class="note">值以 .com 结尾</div>
+                </div>
+
+                <div class="group-title">组合器（层级关系）</div>
+                <div class="example" data-selector="#content .card" data-css="#content .card { /* 后代选择器 */ }">
+                    <div class="name">后代选择器</div>
+                    <div class="css">#content .card</div>
+                    <div class="note">匹配某祖先下的任意后代（包括深层）</div>
+                </div>
+                <div class="example" data-selector=".card > .title" data-css=".card > .title { /* 子代选择器 */ }">
+                    <div class="name">子代选择器</div>
+                    <div class="css">.card > .title</div>
+                    <div class="note">只匹配直接子元素</div>
+                </div>
+                <div class="example" data-selector=".tag + .tag" data-css=".tag + .tag { /* 相邻兄弟 */ }">
+                    <div class="name">相邻兄弟</div>
+                    <div class="css">.tag + .tag</div>
+                    <div class="note">后一个紧接前一个</div>
+                </div>
+                <div class="example" data-selector=".tag.active ~ .tag" data-css=".tag.active ~ .tag { /* 通用兄弟 */ }">
+                    <div class="name">通用兄弟</div>
+                    <div class="css">.tag.active ~ .tag</div>
+                    <div class="note">同级后续所有兄弟</div>
+                </div>
+
+                <div class="group-title">伪类 / 伪元素</div>
+                <div class="example" data-selector="ul#tags li:first-child"
+                    data-css="ul#tags li:first-child { font-weight: bold; }">
+                    <div class="name">第一个子元素</div>
+                    <div class="css">ul#tags li:first-child</div>
+                    <div class="note">选择列表第一个项</div>
+                </div>
+                <div class="example" data-selector="li:nth-child(2n)" data-css="li:nth-child(2n) { opacity: .85; }">
+                    <div class="name">偶数项</div>
+                    <div class="css">li:nth-child(2n)</div>
+                    <div class="note">选择第 2,4,6… 项</div>
+                </div>
+                <div class="example" data-selector="a:focus" data-css="a:focus { outline: 2px solid #22d3ee; }">
+                    <div class="name">聚焦链接</div>
+                    <div class="css">a:focus</div>
+                    <div class="note">键盘 Tab 可触发</div>
+                </div>
+                <div class="example" data-selector="input:checked" data-css="input:checked { /* 被勾选的输入 */ }">
+                    <div class="name">被勾选</div>
+                    <div class="css">input:checked</div>
+                    <div class="note">匹配勾选的复选框</div>
+                </div>
+                <div class="example" data-selector=".card .title::before" data-css=".card .title::before { /* 内容 */}">
+                    <div class="name">伪元素</div>
+                    <div class="css">.card .title::before</div>
+                    <div class="note">选择元素的虚拟内容</div>
+                </div>
+
+                <div class="group-title">逻辑选择器</div>
+                <div class="example" data-selector="li:not(.active)" data-css="li:not(.active) { opacity: .7; }">
+                    <div class="name">取反选择</div>
+                    <div class="css">li:not(.active)</div>
+                    <div class="note">排除 .active 的项</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="controls">
+                <input id="selector-input" type="text" placeholder="如：.card > .title, a[href^='https']" />
+                <button id="apply-btn">高亮匹配</button>
+                <button id="clear-btn" class="secondary">清除高亮</button>
+                <button id="reset-btn" class="secondary">重置状态</button>
+            </div>
+            <div class="info">
+                <div class="badge"><span class="label">匹配数量</span><span id="match-count">0</span></div>
+                <div class="badge"><span class="label">选择器权重</span><span id="specificity"
+                        class="specificity">0,0,0</span></div>
+            </div>
+
+            <div class="state-panel">
+                <label><input id="toggle-hover" type="checkbox" /> 模拟 :hover（为导航链接加 is-hover 类）</label>
+                <label><input id="toggle-focus" type="checkbox" /> 模拟 :focus（聚焦右侧输入框）</label>
+                <label><input id="toggle-checked" type="checkbox" /> 模拟 :checked（勾选复选框）</label>
+            </div>
+
+            <div id="playground">
+                <div class="dom-view">
+                    <div class="title">示例 DOM</div>
+                    <header class="card" id="site-header">
+                        <div class="title">页面头部</div>
+                        <nav class="nav" data-role="primary">
+                            <a href="/" class="active">首页</a>
+                            <a href="/docs">文档</a>
+                            <a href="https://example.com" data-external="true">外链</a>
+                        </nav>
+                    </header>
+
+                    <main id="content">
+                        <article class="card post" data-category="css">
+                            <div class="title">CSS 选择器</div>
+                            <p class="excerpt">选择器用于查找要作用的元素。</p>
+                            <ul class="list" id="tags">
+                                <li class="item tag">基础</li>
+                                <li class="item tag active">进阶</li>
+                                <li class="item tag">伪类</li>
+                                <li class="item tag">伪元素</li>
+                            </ul>
+                        </article>
+
+                        <aside class="card" id="sidebar">
+                            <div class="title">侧栏</div>
+                            <div class="list">
+                                <button class="item btn">按钮</button>
+                                <label class="item sample-form">
+                                    <input type="checkbox" id="agree">
+                                    <span>同意</span>
+                                </label>
+                                <input class="item input" type="text" placeholder="输入...">
+                            </div>
+                        </aside>
+                    </main>
+
+                    <footer class="card" id="site-footer">
+                        <div class="title">页脚</div>
+                        <small class="meta">© YNTKC</small>
+                    </footer>
+                </div>
+
+                <div class="style-view">
+                    <div class="title">规则片段（示意）</div>
+                    <pre id="css-snippet">/* 选择一个示例或输入选择器 */</pre>
+                    <div class="code-note">提示：点击左侧示例或在上方输入框中键入选择器，点击“高亮匹配”。</div>
+                </div>
+            </div>
+
+            <footer class="tips">
+                - 权重（specificity）格式为 A,B,C：A=ID 数量，B=类/属性/伪类数量，C=标签/伪元素数量。
+                - :hover 在键鼠悬停时才会命中；本示例提供 <code>.is-hover</code> 类模拟以便查看效果与匹配。
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        /**
+         * 说明：为了让选择器演示更直观，JS 做了三件事：
+         * 1）把你输入或点击的选择器在 #playground 范围内执行并高亮命中元素；
+         * 2）计算选择器权重（A,B,C），帮助理解优先级；
+         * 3）对部分伪类（如 :hover/:focus/:checked）做最小化模拟，便于在静态页面里观察效果。
+         */
+
+        /**
+         * 工具函数：选择元素
+         * @param {string} sel - CSS 选择器
+         * @returns {Element|null}
+         */
+        function qs(sel) { return document.querySelector(sel); }
+
+        /**
+         * 清除所有高亮样式
+         * 这样做的原因：避免多次匹配叠加，保证每次展示都是当前选择器的命中结果
+         */
+        function clearHighlights() {
+            const root = qs('#playground');
+            root.querySelectorAll('.matched').forEach(el => el.classList.remove('matched'));
+            qs('#match-count').textContent = '0';
+        }
+
+        /**
+         * 为命中的元素添加高亮
+         * @param {NodeList|Element[]} nodes - 命中元素集合
+         * 这么做的目的：用可视化轮廓显示命中结果，便于观察选择器作用范围
+         */
+        function highlightMatches(nodes) {
+            let count = 0;
+            nodes.forEach(el => { el.classList.add('matched'); count++; });
+            qs('#match-count').textContent = String(count);
+        }
+
+        /**
+         * 计算选择器的权重（specificity）
+         * 返回形如 { a, b, c }，其中：
+         * a = ID 选择器数量；b = 类/属性/伪类数量；c = 标签/伪元素数量
+         * 注意：这是一个近似实现，足以教学演示；复杂选择器（例如 :has()）未完整覆盖
+         * @param {string} selector - 输入的选择器
+         * @returns {{a:number,b:number,c:number}}
+         */
+        function calcSpecificity(selector) {
+            // 去除字符串中的伪元素，以便统计元素选择器数量（伪元素按标签计入 C）
+            const selNoPE = selector.replace(/::(before|after|first-line|first-letter)/g, '');
+
+            // 统计 A：ID（#id）
+            const a = (selNoPE.match(/#[a-zA-Z0-9_-]+/g) || []).length;
+
+            // 统计 B：类（.class）、属性（[attr]）、伪类（:hover 等，但排除 :: 伪元素）
+            const classCount = (selNoPE.match(/\.[a-zA-Z0-9_-]+/g) || []).length;
+            const attrCount = (selNoPE.match(/\[[^\]]+\]/g) || []).length;
+            const pseudoClassCount = (selNoPE.match(/:(?!:)[a-zA-Z-]+(?:\([^\)]*\))?/g) || []).length;
+            const b = classCount + attrCount + pseudoClassCount;
+
+            // 统计 C：标签（排除 *, #id, .class, [attr], :pseudo 等和组合器）
+            let temp = selNoPE
+                .replace(/#[a-zA-Z0-9_-]+/g, ' ')
+                .replace(/\.[a-zA-Z0-9_-]+/g, ' ')
+                .replace(/\[[^\]]+\]/g, ' ')
+                .replace(/:(?!:)[a-zA-Z-]+(?:\([^\)]*\))?/g, ' ')
+                .replace(/[*>+~]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            const tagTokens = temp.length ? temp.split(' ') : [];
+            const c = tagTokens.filter(t => t && t !== '*').length;
+
+            return { a, b, c };
+        }
+
+        /**
+         * 更新权重显示到界面
+         * @param {{a:number,b:number,c:number}} s - 权重对象
+         */
+        function updateSpecificityDisplay(s) {
+            qs('#specificity').textContent = `${s.a},${s.b},${s.c}`;
+        }
+
+        /**
+         * 在右侧规则片段区域显示示意 CSS
+         * @param {string} cssText - 要展示的 CSS 文本
+         */
+        function setCssSnippet(cssText) {
+            qs('#css-snippet').textContent = cssText || '/* 选择一个示例或输入选择器 */';
+        }
+
+        /**
+         * 根据选择器对页面进行必要的状态模拟
+         * 为什么需要：静态页面并不总能触发 :hover/:focus/:checked 等伪类，适度模拟便于教学观察
+         * @param {string} selector - 输入的选择器
+         */
+        function prepareStateForSelector(selector) {
+            const needHover = selector.includes(':hover');
+            const needFocus = selector.includes(':focus');
+            const needChecked = selector.includes(':checked');
+
+            // 模拟 :hover —— 为导航链接加 is-hover 类（并在展示中说明这是模拟）
+            const navLinks = document.querySelectorAll('#playground .nav a');
+            navLinks.forEach(a => {
+                if (needHover) a.classList.add('is-hover'); else a.classList.remove('is-hover');
+            });
+
+            // 模拟 :focus —— 聚焦右侧输入框
+            const sidebarInput = document.querySelector('#playground .input');
+            if (needFocus && sidebarInput) sidebarInput.focus();
+
+            // 模拟 :checked —— 勾选复选框
+            const checkbox = document.querySelector('#playground #agree');
+            if (checkbox) checkbox.checked = !!needChecked;
+        }
+
+        /**
+         * 将选择器应用到 #playground，并高亮命中元素
+         * 这么写的好处：
+         * - 仅在演示区域执行，避免误选到页面其他结构；
+         * - 兼容部分伪类的最小化模拟，提升教学直观性；
+         * @param {string} selector - 输入或示例选择器
+         */
+        function applySelector(selector) {
+            const root = qs('#playground');
+            if (!selector || !root) return;
+
+            clearHighlights();
+            prepareStateForSelector(selector);
+
+            let workingSelector = selector;
+
+            // 如果包含伪元素，查询时只取元素本体，但仍突出其所有者元素
+            const hasPseudoElement = /::(before|after)/.test(workingSelector);
+            if (hasPseudoElement) {
+                workingSelector = workingSelector.replace(/::(before|after)/g, '');
+            }
+
+            // 优先使用原选择器查找；若 :hover 未命中，则尝试使用模拟类 .is-hover
+            let result = root.querySelectorAll(workingSelector);
+            if (result.length === 0 && /:hover/.test(selector)) {
+                const hoverSim = workingSelector.replace(/:hover/g, '.is-hover');
+                result = root.querySelectorAll(hoverSim);
+            }
+
+            // 高亮命中
+            highlightMatches(result);
+
+            // 更新权重显示
+            updateSpecificityDisplay(calcSpecificity(selector));
+        }
+
+        /**
+         * 绑定交互事件（按钮、输入、示例卡片）
+         * 这么做的目的：统一管理 UI 事件，保证演示行为一致
+         */
+        function wireEvents() {
+            const input = qs('#selector-input');
+            const applyBtn = qs('#apply-btn');
+            const clearBtn = qs('#clear-btn');
+            const resetBtn = qs('#reset-btn');
+
+            applyBtn.addEventListener('click', () => {
+                setCssSnippet(`${input.value} { /* 示例样式（仅展示文本）*/ }`);
+                applySelector(input.value);
+            });
+
+            clearBtn.addEventListener('click', () => clearHighlights());
+
+            resetBtn.addEventListener('click', () => resetState());
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') applyBtn.click();
+            });
+
+            // 左侧示例点击
+            document.querySelectorAll('.example').forEach(card => {
+                card.addEventListener('click', () => {
+                    const sel = card.getAttribute('data-selector');
+                    const css = card.getAttribute('data-css');
+                    input.value = sel;
+                    setCssSnippet(css);
+                    applySelector(sel);
+                });
+            });
+
+            // 状态切换模拟
+            qs('#toggle-hover').addEventListener('change', (e) => {
+                const checked = e.currentTarget.checked;
+                const links = document.querySelectorAll('#playground .nav a');
+                links.forEach(a => a.classList.toggle('is-hover', checked));
+            });
+            qs('#toggle-focus').addEventListener('change', (e) => {
+                const checked = e.currentTarget.checked;
+                const i = document.querySelector('#playground .input');
+                if (checked) i && i.focus(); else i && i.blur();
+            });
+            qs('#toggle-checked').addEventListener('change', (e) => {
+                const cb = document.querySelector('#playground #agree');
+                if (cb) cb.checked = e.currentTarget.checked;
+            });
+        }
+
+        /**
+         * 重置演示状态到初始态
+         * 为什么要重置：保证每次学习从统一状态开始，避免历史状态干扰
+         */
+        function resetState() {
+            clearHighlights();
+            setCssSnippet('/* 选择一个示例或输入选择器 */');
+            const input = qs('#selector-input');
+            input.value = '';
+            document.querySelectorAll('#playground .nav a').forEach(a => a.classList.remove('is-hover'));
+            const i = document.querySelector('#playground .input');
+            i && i.blur();
+            const cb = document.querySelector('#playground #agree');
+            if (cb) cb.checked = false;
+            qs('#toggle-hover').checked = false;
+            qs('#toggle-focus').checked = false;
+            qs('#toggle-checked').checked = false;
+            updateSpecificityDisplay({ a: 0, b: 0, c: 0 });
+        }
+
+        /**
+         * 初始化入口：绑定事件并设定初始提示
+         * 这样组织入口有利于维护，清晰可读
+         */
+        function init() {
+            wireEvents();
+            setCssSnippet('/* 选择一个示例或输入选择器 */');
+        }
+
+        // 启动
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
