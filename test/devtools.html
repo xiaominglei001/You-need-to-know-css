@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>用浏览器开发者工具调试 CSS（交互式教学）</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --accent: #22d3ee;
+            --danger: #ef4444;
+            --border: #1f2937;
+            --code-bg: #0b1220;
+            --green: #34d399;
+            --yellow: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, "PingFang SC", "Microsoft YaHei", "SimHei", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr 360px;
+            min-height: 100vh;
+        }
+
+        aside.sidebar {
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            padding: 14px;
+        }
+
+        aside.sidebar h1 {
+            font-size: 18px;
+            margin: 0 0 8px;
+        }
+
+        aside.sidebar .desc {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 12px;
+        }
+
+        .steps {
+            display: grid;
+            gap: 8px;
+        }
+
+        .step {
+            background: #0e1625;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .step .title {
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .step .note {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        main.preview {
+            padding: 12px;
+        }
+
+        .toolbar {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="color"],
+        select,
+        button {
+            font-family: inherit;
+            font-size: 13px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .badge {
+            background: #0b1220;
+            border: 1px solid var(--border);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .badge .label {
+            color: var(--muted);
+            margin-right: 6px;
+        }
+
+        button {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button.primary {
+            background: var(--accent);
+            color: #083344;
+        }
+
+        button.secondary {
+            background: #1f2937;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        /* 预览容器，可用于模拟设备宽度与媒体查询 */
+        #device {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #0b1220;
+            padding: 10px;
+        }
+
+        #preview {
+            width: 100%;
+            margin: 0 auto;
+            background: #0c1321;
+            border: 1px dashed #162033;
+            border-radius: 10px;
+            padding: 12px;
+            position: relative;
+        }
+
+        /* 示例站点样式 */
+        .site {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 12px;
+        }
+
+        .card {
+            border: 1px solid #1f2937;
+            border-radius: 10px;
+            padding: 10px;
+            background: #0f1930;
+        }
+
+        .card .title {
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #1f2937;
+            color: #93c5fd;
+            text-decoration: none;
+        }
+
+        .nav a.active {
+            background: #111827;
+            border-color: #374151;
+        }
+
+        .nav a:hover {
+            outline: 2px solid var(--accent);
+        }
+
+        /* 伪类模拟的等价类，让右侧开关有明显视觉反馈 */
+        .nav a.is-hover {
+            outline: 2px solid var(--accent);
+        }
+
+        .input:focus {
+            outline: 2px solid var(--accent);
+        }
+
+        .btn.is-active {
+            outline: 2px solid var(--accent);
+            transform: scale(0.98);
+        }
+
+        .list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .item {
+            padding: 6px 10px;
+            background: #0b1a2d;
+            border: 1px solid #22324a;
+            border-radius: 6px;
+            color: #d1d5db;
+        }
+
+        /* 伪元素示例：为标题添加小符号 */
+        .card .title::before {
+            content: "◆";
+            color: var(--yellow);
+            margin-right: 6px;
+        }
+
+        /* 盒模型示例 */
+        .box-demo {
+            margin: 12px;
+            padding: 12px;
+            border: 4px solid #334155;
+            background: #0b1a2d;
+            color: #cbd5e1;
+        }
+
+        /* 媒体查询：当预览宽度较小改为单列布局 */
+        @media (max-width: 640px) {
+            .site {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 选中态与检查叠加 */
+        .selected {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .overlay {
+            position: absolute;
+            pointer-events: none;
+            border: 1px solid var(--accent);
+            background: rgba(34, 211, 238, .12);
+            z-index: 99;
+        }
+
+        /* 右侧“开发者工具面板”模拟 */
+        .tools {
+            background: var(--panel);
+            border-left: 1px solid var(--border);
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .tools .panel {
+            border: 1px solid var(--border);
+            background: #0e1625;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        .tools .panel .title {
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .prop {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 6px;
+            align-items: center;
+            font-size: 12px;
+            padding: 4px 6px;
+            border-radius: 6px;
+        }
+
+        .prop:hover {
+            background: #0b1220;
+        }
+
+        .prop .name {
+            color: #9ca3af;
+        }
+
+        .prop .value {
+            color: #a5b4fc;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+        }
+
+        .prop .spec {
+            color: #f59e0b;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+        }
+
+        .box-model {
+            display: grid;
+            gap: 6px;
+        }
+
+        .box-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .box-token {
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0b1a2d;
+            font-size: 11px;
+        }
+
+        .ctrls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+
+        .ctrls label {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        footer.tips {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 左侧：教学步骤与提示 -->
+        <aside class="sidebar">
+            <h1>DevTools 调试 CSS（互动）</h1>
+            <div class="desc">跟随步骤，在真实浏览器的开发者工具中完成操作；此页提供可视化辅助与状态模拟。</div>
+            <div class="steps">
+                <div class="step">
+                    <div class="title">1. 检查元素</div>
+                    <div class="note">按 F12 或右键“检查 (Inspect)”。在中间预览区中点击某个元素，你将看到右侧面板的匹配规则与盒模型。</div>
+                </div>
+                <div class="step">
+                    <div class="title">2. 查看匹配规则与级联</div>
+                    <div class="note">在 Elements → Styles 里观察每条规则的来源与权重（specificity）。试着切换同名属性的生效/禁用。</div>
+                </div>
+                <div class="step">
+                    <div class="title">3. 编辑样式声明</div>
+                    <div class="note">双击属性值或直接在新行输入声明；尝试调整 <code>color</code>、<code>padding</code>、<code>border</code>
+                        等。</div>
+                </div>
+                <div class="step">
+                    <div class="title">4. 模拟伪类与状态</div>
+                    <div class="note">在 Styles 面板勾选 :hover/:focus；或用下面的开关模拟，从而验证状态相关样式。</div>
+                </div>
+                <div class="step">
+                    <div class="title">5. 查看 Computed 与 Box Model</div>
+                    <div class="note">切换到 Computed 面板，确认最终生效的属性与盒模型尺寸，并与右侧的可视化对照。</div>
+                </div>
+                <div class="step">
+                    <div class="title">6. 媒体查询 / 设备模式</div>
+                    <div class="note">在 DevTools Device Toolbar 调整宽度；也可用中间的“设备宽度滑块”，观察布局变化。</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 中间：预览区与设备宽度控制 -->
+        <main class="preview">
+            <div class="toolbar">
+                <div class="badge"><span class="label">目标元素</span><span id="target-path">未选择</span></div>
+                <button id="inspect-toggle" class="secondary">启用检查模式</button>
+                <div class="badge"><span class="label">设备宽度</span><span id="device-label">自适应</span></div>
+            </div>
+            <div id="device">
+                <div class="ctrls">
+                    <label><input id="width-range" type="range" min="360" max="1280" step="10" /> 调整设备宽度</label>
+                    <label><input id="hover-sim" type="checkbox" /> 模拟 :hover</label>
+                    <label><input id="focus-sim" type="checkbox" /> 模拟 :focus</label>
+                    <label><input id="active-sim" type="checkbox" /> 模拟 :active</label>
+                    <label>主题色 <input id="accent-input" type="color" value="#22d3ee" /></label>
+                </div>
+                <div id="preview">
+                    <div class="site">
+                        <header class="card" id="site-header">
+                            <div class="title">页面头部</div>
+                            <nav class="nav" data-role="primary">
+                                <a href="#" class="active">首页</a>
+                                <a href="#">文档</a>
+                                <a href="#">外链</a>
+                            </nav>
+                        </header>
+
+                        <main id="content">
+                            <article class="card post" data-category="css">
+                                <div class="title">CSS 调试演示</div>
+                                <p class="excerpt">在 DevTools 中检查此段落，尝试修改 <code>color</code> 或 <code>font-size</code>。
+                                </p>
+                                <div class="box-demo">盒模型示例：查看 margin / padding / border 在 Computed 面板中的数值与右侧可视化是否一致。
+                                </div>
+                                <ul class="list" id="tags">
+                                    <li class="item tag">基础</li>
+                                    <li class="item tag active">进阶</li>
+                                    <li class="item tag">伪类</li>
+                                </ul>
+                            </article>
+                        </main>
+
+                        <aside class="card" id="sidebar">
+                            <div class="title">侧栏</div>
+                            <div class="list">
+                                <button class="item btn">按钮</button>
+                                <label class="item sample-form">
+                                    <input type="checkbox" id="agree">
+                                    <span>同意</span>
+                                </label>
+                                <input class="item input" type="text" placeholder="输入...">
+                            </div>
+                        </aside>
+                    </div>
+                    <!-- 检查叠加层 -->
+                    <div id="overlay" class="overlay" style="display:none"></div>
+                </div>
+            </div>
+            <footer class="tips">
+                提示：本页只模拟 DevTools 的核心理念（检查、级联、状态、盒模型与媒体查询）。请在真实 DevTools 中完成操作，以便熟悉工具界面与快捷键。
+            </footer>
+        </main>
+
+        <!-- 右侧：规则/计算/盒模型的模拟面板 -->
+        <section class="tools">
+            <div class="panel" id="rules-panel">
+                <div class="title">匹配规则（按级联排序）</div>
+                <div id="rules-list"></div>
+            </div>
+            <div class="panel" id="computed-panel">
+                <div class="title">Computed（关键属性）</div>
+                <div id="computed-list" class="box-model"></div>
+            </div>
+            <div class="panel" id="box-panel">
+                <div class="title">盒模型可视化</div>
+                <div id="box-view" class="box-model">
+                    <div class="box-row"><span class="box-token">margin</span><span id="bm-margin"></span></div>
+                    <div class="box-row"><span class="box-token">border</span><span id="bm-border"></span></div>
+                    <div class="box-row"><span class="box-token">padding</span><span id="bm-padding"></span></div>
+                    <div class="box-row"><span class="box-token">content size</span><span id="bm-content"></span></div>
+                </div>
+            </div>
+            <div class="panel" id="editor-panel">
+                <div class="title">快速编辑（应用到行内样式）</div>
+                <div class="ctrls">
+                    <input id="prop-name" type="text" placeholder="属性名，如 color" />
+                    <input id="prop-value" type="text" placeholder="属性值，如 red" />
+                    <button id="apply-prop" class="primary">应用</button>
+                    <button id="clear-prop" class="secondary">清除</button>
+                </div>
+                <div class="ctrls">
+                    <input id="class-name" type="text" placeholder="添加/移除类名，如 highlight" />
+                    <button id="add-class" class="secondary">添加类</button>
+                    <button id="remove-class" class="secondary">移除类</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        /**
+         * 入口说明：本页旨在帮助你“用 DevTools 调试 CSS”，JS 辅助做四件事：
+         * 1）提供“检查模式”，点击预览中的元素即可选中，模拟 DevTools Inspect；
+         * 2）列出当前选中元素的匹配规则与权重，并按级联排序，帮助理解 Styles 面板；
+         * 3）展示 computed 与盒模型关键属性，配合右侧的数值与叠加层可视化；
+         * 4）提供简单的行内样式编辑与状态模拟（:hover/:focus/:active），便于练习修改与观察效果。
+         */
+
+        /**
+         * 工具函数：选择器简写
+         * @param {string} sel - CSS 选择器
+         * @returns {Element|null}
+         */
+        function qs(sel) { return document.querySelector(sel); }
+
+        /**
+         * 工具函数：计算选择器的权重（specificity）
+         * 近似统计 A,B,C，其中 A=ID 数量，B=类/属性/伪类数量，C=标签/伪元素数量。
+         * @param {string} selector
+         * @returns {{a:number,b:number,c:number}}
+         */
+        function calcSpecificity(selector) {
+            const selNoPE = selector.replace(/::(before|after|first-line|first-letter)/g, '');
+            const a = (selNoPE.match(/#[a-zA-Z0-9_-]+/g) || []).length;
+            const classCount = (selNoPE.match(/\.[a-zA-Z0-9_-]+/g) || []).length;
+            const attrCount = (selNoPE.match(/\[[^\]]+\]/g) || []).length;
+            const pseudoClassCount = (selNoPE.match(/:(?!:)[a-zA-Z-]+(?:\([^\)]*\))?/g) || []).length;
+            const b = classCount + attrCount + pseudoClassCount;
+            let temp = selNoPE
+                .replace(/#[a-zA-Z0-9_-]+/g, ' ')
+                .replace(/\.[a-zA-Z0-9_-]+/g, ' ')
+                .replace(/\[[^\]]+\]/g, ' ')
+                .replace(/:(?!:)[a-zA-Z-]+(?:\([^\)]*\))?/g, ' ')
+                .replace(/[*>+~]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            const tagTokens = temp.length ? temp.split(' ') : [];
+            const c = tagTokens.filter(t => t && t !== '*').length;
+            return { a, b, c };
+        }
+
+        /**
+         * 根据已加载的样式表，筛出能匹配目标元素的 CSSStyleRule
+         * 这么做的原因：模拟 DevTools Styles 面板的“匹配规则列表”。
+         * @param {Element} el - 目标元素
+         * @returns {Array<{selector:string,decl:string,rule:CSSStyleRule,spec:string}>}
+         */
+        function getMatchedRules(el) {
+            const out = [];
+            for (const ss of Array.from(document.styleSheets)) {
+                // 只读取同源样式表，避免跨域报错
+                let rules;
+                try { rules = ss.cssRules; } catch (_) { continue; }
+                if (!rules) continue;
+                for (const r of Array.from(rules)) {
+                    if (r.type === CSSRule.STYLE_RULE) {
+                        const sel = r.selectorText;
+                        if (!sel) continue;
+                        // 一个选择器文本可能包含多组，用逗号拆分分别匹配
+                        const parts = sel.split(',').map(s => s.trim());
+                        const matched = parts.some(p => {
+                            try { return el.matches(p); } catch (_) { return false; }
+                        });
+                        if (matched) {
+                            const spec = calcSpecificity(sel);
+                            out.push({ selector: sel, decl: r.style.cssText, rule: r, spec: `${spec.a},${spec.b},${spec.c}` });
+                        }
+                    }
+                }
+            }
+            // 级联排序：按 specificity 从高到低展示（真实 DevTools 还考虑来源顺序，这里足够教学）
+            return out.sort((a, b) => {
+                const [aA, aB, aC] = a.spec.split(',').map(Number);
+                const [bA, bB, bC] = b.spec.split(',').map(Number);
+                if (aA !== bA) return bA - aA;
+                if (aB !== bB) return bB - aB;
+                return bC - aC;
+            });
+        }
+
+        /**
+         * 渲染匹配规则到右侧面板，并提供“临时禁用声明”的交互（通过行内样式模拟）
+         * @param {Element} el - 当前选中元素
+         */
+        function renderRules(el) {
+            const list = qs('#rules-list');
+            list.innerHTML = '';
+            const rules = getMatchedRules(el);
+            if (rules.length === 0) {
+                list.innerHTML = '<div class="note">无匹配规则（可能是继承或浏览器默认样式）</div>';
+                return;
+            }
+            rules.forEach(({ selector, decl, spec }) => {
+                const item = document.createElement('div');
+                item.className = 'prop';
+                const name = document.createElement('div'); name.className = 'name'; name.textContent = selector;
+                const value = document.createElement('div'); value.className = 'value'; value.textContent = decl || '(空)';
+                const sp = document.createElement('div'); sp.className = 'spec'; sp.textContent = spec;
+                item.append(name, value, sp);
+                list.appendChild(item);
+            });
+        }
+
+        /**
+         * 渲染 computed 关键属性列表
+         * @param {Element} el
+         */
+        function renderComputed(el) {
+            const target = qs('#computed-list');
+            target.innerHTML = '';
+            const cs = getComputedStyle(el);
+            const keys = ['color', 'font-size', 'display', 'position', 'margin', 'border-width', 'padding', 'width', 'height'];
+            keys.forEach(k => {
+                const row = document.createElement('div'); row.className = 'prop';
+                const name = document.createElement('div'); name.className = 'name'; name.textContent = k;
+                const value = document.createElement('div'); value.className = 'value'; value.textContent = cs.getPropertyValue(k);
+                const sp = document.createElement('div'); sp.className = 'spec'; sp.textContent = '';
+                row.append(name, value, sp);
+                target.appendChild(row);
+            });
+        }
+
+        /**
+         * 更新盒模型数值并绘制叠加层矩形
+         * @param {Element} el
+         */
+        function renderBoxModel(el) {
+            const cs = getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            qs('#bm-margin').textContent = `${cs.marginTop} ${cs.marginRight} ${cs.marginBottom} ${cs.marginLeft}`;
+            qs('#bm-border').textContent = `${cs.borderTopWidth} ${cs.borderRightWidth} ${cs.borderBottomWidth} ${cs.borderLeftWidth}`;
+            qs('#bm-padding').textContent = `${cs.paddingTop} ${cs.paddingRight} ${cs.paddingBottom} ${cs.paddingLeft}`;
+            qs('#bm-content').textContent = `${Math.round(rect.width)}px × ${Math.round(rect.height)}px`;
+
+            const overlay = qs('#overlay');
+            const hostRect = qs('#preview').getBoundingClientRect();
+            overlay.style.display = 'block';
+            overlay.style.left = `${rect.left - hostRect.left}px`;
+            overlay.style.top = `${rect.top - hostRect.top}px`;
+            overlay.style.width = `${rect.width}px`;
+            overlay.style.height = `${rect.height}px`;
+        }
+
+        /** 当前选中元素引用 */
+        let currentEl = null;
+        /** 检查模式开关 */
+        let inspectMode = false;
+
+        /**
+         * 选择一个元素并刷新面板
+         * @param {Element} el
+         */
+        function selectElement(el) {
+            if (currentEl) currentEl.classList.remove('selected');
+            currentEl = el;
+            if (!currentEl) { qs('#target-path').textContent = '未选择'; qs('#overlay').style.display = 'none'; return; }
+            currentEl.classList.add('selected');
+            qs('#target-path').textContent = getDomPath(currentEl);
+            renderRules(currentEl);
+            renderComputed(currentEl);
+            renderBoxModel(currentEl);
+        }
+
+        /**
+         * 生成一个简化的 DOM 路径，用于显示目标元素（模拟 DevTools breadcrumb）
+         * @param {Element} el
+         * @returns {string}
+         */
+        function getDomPath(el) {
+            const parts = [];
+            let cur = el;
+            while (cur && cur.nodeType === 1 && cur !== qs('#preview')) {
+                let part = cur.tagName.toLowerCase();
+                if (cur.id) part += `#${cur.id}`;
+                if (cur.className) part += '.' + Array.from(cur.classList).join('.');
+                parts.unshift(part);
+                cur = cur.parentElement;
+            }
+            return parts.join(' > ');
+        }
+
+        /**
+         * 切换检查模式：开启后点击预览区即可选中元素
+         */
+        function toggleInspectMode() {
+            inspectMode = !inspectMode;
+            qs('#inspect-toggle').textContent = inspectMode ? '关闭检查模式' : '启用检查模式';
+            qs('#inspect-toggle').className = inspectMode ? 'primary' : 'secondary';
+        }
+
+        /**
+         * 安装预览区的事件代理：在检查模式下，点击即选中目标元素
+         */
+        function installInspectHandlers() {
+            qs('#preview').addEventListener('click', (e) => {
+                if (!inspectMode) return;
+                e.preventDefault();
+                const target = e.target.closest('.site, .card, .nav a, .item, .box-demo, .title, .excerpt, .list, .btn, .input, .sample-form, header, main, aside');
+                if (target) selectElement(target);
+            });
+        }
+
+        /**
+         * 绑定状态模拟与快捷编辑控件
+         */
+        function bindControls() {
+            // 设备宽度滑块：直接设置预览容器宽度以触发媒体查询
+            const widthRange = qs('#width-range');
+            widthRange.addEventListener('input', () => {
+                const w = widthRange.valueAsNumber;
+                qs('#device-label').textContent = `${w}px`;
+                qs('#preview').style.width = `${w}px`;
+            });
+
+            // 伪类模拟：为导航链接添加 is-hover 类，输入框 focus/blur，按钮 active 态
+            qs('#hover-sim').addEventListener('change', (e) => {
+                const links = document.querySelectorAll('#preview .nav a');
+                links.forEach(a => a.classList.toggle('is-hover', e.currentTarget.checked));
+            });
+            qs('#focus-sim').addEventListener('change', (e) => {
+                const input = qs('#preview .input');
+                if (!input) return;
+                if (e.currentTarget.checked) input.focus(); else input.blur();
+            });
+            qs('#active-sim').addEventListener('change', (e) => {
+                const btn = qs('#preview .btn');
+                if (!btn) return;
+                btn.classList.toggle('is-active', e.currentTarget.checked);
+            });
+
+            // 主题色：通过 CSS 变量调整 accent 色
+            qs('#accent-input').addEventListener('input', (e) => {
+                document.documentElement.style.setProperty('--accent', e.currentTarget.value);
+            });
+
+            // 检查模式按钮
+            qs('#inspect-toggle').addEventListener('click', toggleInspectMode);
+
+            // 快速编辑行内样式
+            qs('#apply-prop').addEventListener('click', () => {
+                if (!currentEl) return;
+                const name = qs('#prop-name').value.trim();
+                const val = qs('#prop-value').value.trim();
+                if (!name) return;
+                currentEl.style.setProperty(name, val);
+                renderComputed(currentEl);
+                renderBoxModel(currentEl);
+            });
+            qs('#clear-prop').addEventListener('click', () => {
+                if (!currentEl) return;
+                const name = qs('#prop-name').value.trim();
+                if (!name) return;
+                currentEl.style.removeProperty(name);
+                renderComputed(currentEl);
+                renderBoxModel(currentEl);
+            });
+
+            // 类名添加/移除（模拟 DevTools 的 .cls 工具）
+            qs('#add-class').addEventListener('click', () => {
+                if (!currentEl) return;
+                const cls = qs('#class-name').value.trim();
+                if (!cls) return;
+                currentEl.classList.add(cls);
+                renderRules(currentEl);
+                renderComputed(currentEl);
+                renderBoxModel(currentEl);
+            });
+            qs('#remove-class').addEventListener('click', () => {
+                if (!currentEl) return;
+                const cls = qs('#class-name').value.trim();
+                if (!cls) return;
+                currentEl.classList.remove(cls);
+                renderRules(currentEl);
+                renderComputed(currentEl);
+                renderBoxModel(currentEl);
+            });
+        }
+
+        /**
+         * 初始化：绑定事件、默认选择一个元素以展示效果
+         */
+        function init() {
+            installInspectHandlers();
+            bindControls();
+            // 默认选择“CSS 调试演示”的标题，便于用户一进来就看到面板效果
+            const initial = qs('#content .post .title');
+            if (initial) selectElement(initial);
+        }
+
+        // 启动
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS 调试教程</title>
+    <style>
+        /* 页面整体样式 */
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        /* 容器样式 */
+        .container {
+            text-align: center;
+            margin: 50px 0;
+        }
+
+        /* 按钮的初始样式 */
+        .pretty-button {
+            width: 100px;
+            height: 100px;
+            line-height: 100px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        /* 鼠标悬停时按钮的样式 */
+        .pretty-button:hover {
+            background-color: #2980b9;
+        }
+
+        /* 点击后按钮的样式 */
+        .pretty-button.clicked {
+            background-color: #e74c3c;
+            transform: scale(0.95);
+        }
+
+        /* 说明部分的样式 */
+        .instructions {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>使用开发者工具调试 CSS</h1>
+
+    <p>这是一个交互式教程，将引导您学习如何使用浏览器的开发者工具来检查和调试CSS样式。</p>
+
+    <div class="container">
+        <div id="myButton" class="pretty-button">点击我</div>
+    </div>
+
+    <div class="instructions">
+        <h2>操作指南</h2>
+        <ol>
+            <li><strong>打开开发者工具：</strong>在“点击我”按钮上右键单击，然后选择“检查”或“审查元素”。这将在您的浏览器中打开开发者工具。</li>
+            <li><strong>定位元素：</strong>在开发者工具的“元素”面板中，您应该会看到
+                <code>&lt;button id="myButton" class="pretty-button"&gt;</code> 这行代码高亮显示。</li>
+            <li><strong>查看和修改样式：</strong>在“样式”面板中，找到 <code>.pretty-button</code> 类的样式规则。您可以看到我们预设的样式，如
+                <code>background-color</code> 和 <code>border-radius</code>。</li>
+            <li><strong>实时编辑：</strong>尝试直接在“样式”面板中单击颜色代码（例如 <code>#3498db</code>）并选择一个新颜色。您会看到按钮的颜色立即发生变化！</li>
+            <li><strong>禁用/启用样式：</strong>每个CSS属性旁边都有一个复选框。尝试取消勾选 <code>border-radius</code> 旁边的复选框，看看按钮的圆角会发生什么变化。</li>
+            <li><strong>添加新样式：</strong>在 <code>.pretty-button</code> 规则的任何位置单击，然后输入一个新的CSS属性，例如
+                <code>box-shadow: 2px 2px 5px rgba(0,0,0,0.3);</code>，然后按Enter键。看看按钮是否出现了阴影效果。</li>
+            <li><strong>探索伪类：</strong>在“样式”面板中，您可能会看到一个 <code>:hover</code> 选项。点击它可以强制元素处于悬停状态，这样您就可以方便地调试
+                <code>.pretty-button:hover</code> 的样式了。</li>
+        </ol>
+        <p><strong>提示：</strong> 您在开发者工具中所做的所有更改都是临时的。刷新页面后，所有内容都将恢复到原始状态。这使得开发者工具成为一个可以安全进行实验和调试的绝佳环境。</p>
+    </div>
+
+    <script>
+        /**
+         * 获取按钮元素
+         * @type {HTMLElement}
+         */
+        const button = document.getElementById('myButton');
+
+        /**
+         * 为按钮添加点击事件监听器。
+         * 每次单击按钮时，此函数都会在按钮的类列表中切换 'clicked' 类。
+         * 这允许您在开发者工具中观察类的变化以及相应样式的应用。
+         */
+        button.addEventListener('click', () => {
+            // 使用 classList.toggle() 方法可以方便地添加或删除一个类
+            button.classList.toggle('clicked');
+        });
+    </script>
+
+</body>
+
+</html>
