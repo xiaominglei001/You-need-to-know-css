@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>font vs text vs line 属性交互式教程</title>
+    <style>
+        /* 页面基础样式 */
+        :root {
+            --box-width: 620px;
+            --accent: #2d8cf0;
+            --bg: #f7f7f9;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, "Microsoft YaHei", Arial, sans-serif;
+            background: var(--bg);
+            color: #222;
+            margin: 24px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .intro {
+            margin-bottom: 16px;
+            color: #555;
+        }
+
+        .section {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+        }
+
+        .section h2 {
+            margin: 0 0 12px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(260px, 1fr));
+            gap: 10px 16px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .controls label {
+            font-size: 14px;
+            color: #444;
+        }
+
+        .controls input[type="range"] {
+            width: 180px;
+        }
+
+        .controls .row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .demo-box {
+            width: var(--box-width);
+            border: 1px dashed #d0d7de;
+            border-radius: 6px;
+            background: #fafafa;
+            padding: 12px;
+            margin: 10px 0;
+        }
+
+        .demo-title {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .metrics {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #eef6ff;
+            color: #2368ef;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+
+        .span-box {
+            display: inline-block;
+            padding: 6px 10px;
+            margin: 2px;
+            background: #e5f2ff;
+            border: 1px solid #b7dafd;
+            border-radius: 4px;
+        }
+
+        .btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        button {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            border-color: #999;
+        }
+
+        .muted {
+            color: #777;
+            font-size: 12px;
+        }
+
+        code {
+            background: #f0f3f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .note {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+
+        /* 行数裁切示例（使用 -webkit-line-clamp） */
+        .clamp {
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>font / text / line 属性交互式学习</h1>
+    <p class="intro">
+        心智模型：<span class="pill">font- 字符级</span><span class="pill">text- 行内/段落级</span><span class="pill">line-
+            行级</span>。
+        它们不仅影响文字的外观，也会影响布局（宽度、行数、换行、对齐等）。
+    </p>
+
+    <div class="section" id="font-section">
+        <h2>一、font-*：决定“字形”本身</h2>
+        <div class="controls">
+            <div class="row">
+                <label for="font-family">font-family：</label>
+                <select id="font-family">
+                    <option value="system-ui, -apple-system, 'Microsoft YaHei', Arial, sans-serif">系统默认</option>
+                    <option value="'SimSun', '宋体', serif">宋体 SimSun</option>
+                    <option value="'SimHei', '黑体', sans-serif">黑体 SimHei</option>
+                    <option value="Georgia, 'Times New Roman', serif">Georgia / Times</option>
+                    <option value="Arial, Helvetica, sans-serif">Arial / Helvetica</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="font-size">font-size：</label>
+                <input id="font-size" type="range" min="12" max="48" step="1" value="18">
+                <span id="font-size-val" class="muted">18px</span>
+            </div>
+            <div class="row">
+                <label for="font-weight">font-weight：</label>
+                <input id="font-weight" type="range" min="100" max="900" step="100" value="400">
+                <span id="font-weight-val" class="muted">400</span>
+            </div>
+            <div class="row">
+                <label for="font-style">font-style：</label>
+                <select id="font-style">
+                    <option value="normal">normal</option>
+                    <option value="italic">italic</option>
+                </select>
+            </div>
+        </div>
+        <div class="demo-title">Demo（改变字体将影响内容宽度、行数与换行）</div>
+        <div class="demo-box">
+            <p id="font-sample">
+                CSS 是层叠样式表。Changing font family/size/weight changes text metrics and reflow.
+            </p>
+            <div class="metrics" id="font-metrics">宽度/高度/行数统计计算中…</div>
+            <div class="btns">
+                <button id="font-reset">重置</button>
+            </div>
+        </div>
+        <p class="note">提示：不同字体的字宽不同，尤其中英文混排时差异明显；增大 <code>font-size</code> 或 <code>font-weight</code>
+            会改变内容的尺寸与换行位置，触发布局重排。</p>
+    </div>
+
+    <div class="section" id="text-section">
+        <h2>二、text-*：决定“文本块”的排版与装饰</h2>
+        <div class="controls">
+            <div class="row">
+                <label>text-align：</label>
+                <label><input type="radio" name="text-align" value="left" checked> left</label>
+                <label><input type="radio" name="text-align" value="center"> center</label>
+                <label><input type="radio" name="text-align" value="right"> right</label>
+                <label><input type="radio" name="text-align" value="justify"> justify</label>
+            </div>
+            <div class="row">
+                <label for="text-indent">text-indent：</label>
+                <input id="text-indent" type="range" min="0" max="80" step="2" value="0">
+                <span id="text-indent-val" class="muted">0px</span>
+            </div>
+            <div class="row">
+                <label for="letter-spacing">letter-spacing：</label>
+                <input id="letter-spacing" type="range" min="-1" max="8" step="0.5" value="0">
+                <span id="letter-spacing-val" class="muted">0px</span>
+            </div>
+            <div class="row">
+                <label for="word-spacing">word-spacing：</label>
+                <input id="word-spacing" type="range" min="0" max="20" step="1" value="0">
+                <span id="word-spacing-val" class="muted">0px</span>
+            </div>
+            <div class="row">
+                <label for="text-transform">text-transform：</label>
+                <select id="text-transform">
+                    <option value="none">none</option>
+                    <option value="uppercase">uppercase</option>
+                    <option value="lowercase">lowercase</option>
+                    <option value="capitalize">capitalize</option>
+                </select>
+            </div>
+        </div>
+        <div class="demo-title">Demo（对齐/缩进/间距直接影响文本的排布与容器尺寸）</div>
+        <div class="demo-box" id="text-box">
+            <div class="span-box">盒子A</div>
+            <div class="span-box">盒子B</div>
+            <div class="span-box">盒子C</div>
+            <p id="text-sample">
+                Text properties control alignment, indentation and spacing. Try justify and see how spaces expand.
+                文本属性影响布局：对齐、缩进、字/词间距都会改变换行与占位。
+            </p>
+            <div class="metrics" id="text-metrics">宽度/高度/行数统计计算中…</div>
+            <div class="btns">
+                <button id="text-reset">重置</button>
+            </div>
+        </div>
+        <p class="note">提示：<code>text-align</code> 影响的是“行内格式化上下文”，包括文本、行内元素与
+            <code>inline-block</code>；<code>letter-spacing</code> 与 <code>word-spacing</code> 改变字符/词之间的距离，从而改变换行点与容器尺寸。
+        </p>
+    </div>
+
+    <div class="section" id="line-section">
+        <h2>三、line-*：决定“行”的高度与换行规则</h2>
+        <div class="controls">
+            <div class="row">
+                <label for="line-height">line-height：</label>
+                <input id="line-height" type="range" min="0.8" max="2.4" step="0.1" value="1.6">
+                <span id="line-height-val" class="muted">1.6</span>
+            </div>
+            <div class="row">
+                <label for="line-break">line-break（CJK换行规则）：</label>
+                <select id="line-break">
+                    <option value="auto">auto</option>
+                    <option value="normal">normal</option>
+                    <option value="loose">loose</option>
+                    <option value="strict">strict</option>
+                    <option value="anywhere">anywhere</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="line-clamp">行数裁切（-webkit-line-clamp）：</label>
+                <input id="line-clamp" type="range" min="1" max="6" step="1" value="3">
+                <span id="line-clamp-val" class="muted">3 行</span>
+            </div>
+        </div>
+        <div class="demo-title">Demo（行高/换行规则/裁切会显著改变文本块的尺寸与可见内容）</div>
+        <div class="demo-box" id="line-box">
+            <p id="line-sample">
+                这是一段用于观察行高与换行的文本：Line properties affect how lines are sized and where breaks occur. 增大 line-height
+                会拉开行距；line-break 控制中日韩文字的断行策略（如是否允许某些标点前后换行）；anywhere 可以在任何位置断行。
+            </p>
+            <p id="clamp-sample" class="clamp">
+                -webkit-line-clamp 可以实现多行省略：当行数受限时，超出的内容会被裁掉。该技巧常见于新闻列表、卡片摘要等场景。注意这属于供应商扩展属性，标准化进展中，实际支持以浏览器为准。
+            </p>
+            <div class="metrics" id="line-metrics">宽度/高度/行数统计计算中…</div>
+            <div class="btns">
+                <button id="line-reset">重置</button>
+            </div>
+        </div>
+        <p class="note">提示：无单位的 <code>line-height</code> 会按 <code>font-size × 倍数</code>计算行高；<code>line-break</code> 主要影响
+            CJK 文本；<code>-webkit-line-clamp</code> 是常用的多行省略方案。</p>
+    </div>
+
+    <div class="section">
+        <h2>操作指南</h2>
+        <ul>
+            <li>拖动滑块或选择下拉项，观察 Demo 盒子的尺寸与内容换行的变化（下方“宽度/高度/行数”会实时更新）。</li>
+            <li>点击“重置”恢复默认设置，便于对比影响。</li>
+            <li>用浏览器开发者工具查看 <code>computed styles</code>，理解属性如何共同作用于布局。</li>
+        </ul>
+    </div>
+
+    <script>
+        /**
+         * 计算一个文本块的大致“行数”。
+         * 原理：用元素的可见高度除以其计算后的行高。
+         * 注意：这是估算值，复杂内联排版时可能有小误差。
+         * @param {HTMLElement} el 需要统计的元素
+         * @returns {number} 估算的行数
+         */
+        function estimateLines(el) {
+            const cs = getComputedStyle(el);
+            const h = el.getBoundingClientRect().height;
+            const lh = parseFloat(cs.lineHeight);
+            if (!lh || lh <= 0) return 0;
+            return Math.max(1, Math.round(h / lh));
+        }
+
+        /**
+         * 将样式对象应用到元素的 style 上。
+         * @param {HTMLElement} el 目标元素
+         * @param {Record<string, string>} styles 键值对形式的样式
+         */
+        function applyStyles(el, styles) {
+            for (const k in styles) {
+                el.style.setProperty(k, styles[k]);
+            }
+        }
+
+        /**
+         * 更新度量信息（宽度、高度、估算行数）。
+         * @param {HTMLElement} sample 样例元素
+         * @param {HTMLElement} metrics 显示度量信息的元素
+         */
+        function updateMetrics(sample, metrics) {
+            const rect = sample.getBoundingClientRect();
+            const lines = estimateLines(sample);
+            metrics.textContent = `宽度：${Math.round(rect.width)}px；高度：${Math.round(rect.height)}px；估算行数：${lines}`;
+        }
+
+        /**
+         * 绑定滑块/选择器到样例元素，使其交互时实时更新样式与度量。
+         * @param {HTMLElement} control 控件元素（range/select）
+         * @param {(val:string)=>Record<string,string>} toStyles 值到样式的映射函数
+         * @param {HTMLElement} sample 需要应用样式的样例元素
+         * @param {HTMLElement} metrics 显示度量信息的元素
+         * @param {(val:string)=>void} [after] 额外的联动回调（更新标签文本等）
+         */
+        function bindControl(control, toStyles, sample, metrics, after) {
+            const handler = () => {
+                const val = control.value;
+                applyStyles(sample, toStyles(val));
+                updateMetrics(sample, metrics);
+                if (after) after(val);
+            };
+            control.addEventListener('input', handler);
+            control.addEventListener('change', handler);
+            handler(); // 初始化一次
+        }
+
+        /**
+         * 为一组单选按钮绑定 text-align 行为。
+         * @param {NodeListOf<HTMLInputElement>} radios 单选按钮集合
+         * @param {HTMLElement} box 外层容器（对齐作用于此）
+         * @param {HTMLElement} sample 样例文本
+         * @param {HTMLElement} metrics 显示度量信息的元素
+         */
+        function bindTextAlign(radios, box, sample, metrics) {
+            const applyAlign = (val) => {
+                box.style.textAlign = val;
+                updateMetrics(sample, metrics);
+            };
+            radios.forEach(r => r.addEventListener('change', () => applyAlign(r.value)));
+            applyAlign(document.querySelector('input[name="text-align"]:checked').value);
+        }
+
+        /**
+         * 设置 -webkit-line-clamp 的行数。
+         * @param {HTMLElement} el 需要裁切的元素
+         * @param {number} lines 行数
+         */
+        function setClampLines(el, lines) {
+            el.style.setProperty('-webkit-line-clamp', String(lines));
+        }
+
+        /**
+         * 初始化交互逻辑：绑定控件、设置默认值、刷新度量。
+         */
+        function init() {
+            // font-* 部分
+            const fontSample = document.getElementById('font-sample');
+            const fontMetrics = document.getElementById('font-metrics');
+            bindControl(document.getElementById('font-family'), (v) => ({ 'font-family': v }), fontSample, fontMetrics);
+            bindControl(document.getElementById('font-size'), (v) => ({ 'font-size': v + 'px' }), fontSample, fontMetrics, (v) => {
+                document.getElementById('font-size-val').textContent = v + 'px';
+            });
+            bindControl(document.getElementById('font-weight'), (v) => ({ 'font-weight': v }), fontSample, fontMetrics, (v) => {
+                document.getElementById('font-weight-val').textContent = v;
+            });
+            bindControl(document.getElementById('font-style'), (v) => ({ 'font-style': v }), fontSample, fontMetrics);
+            document.getElementById('font-reset').addEventListener('click', () => {
+                /** 重置 font-* 示例到默认值 */
+                applyStyles(fontSample, {
+                    'font-family': "system-ui, -apple-system, 'Microsoft YaHei', Arial, sans-serif",
+                    'font-size': '18px',
+                    'font-weight': '400',
+                    'font-style': 'normal',
+                });
+                document.getElementById('font-family').value = "system-ui, -apple-system, 'Microsoft YaHei', Arial, sans-serif";
+                document.getElementById('font-size').value = '18';
+                document.getElementById('font-size-val').textContent = '18px';
+                document.getElementById('font-weight').value = '400';
+                document.getElementById('font-weight-val').textContent = '400';
+                document.getElementById('font-style').value = 'normal';
+                updateMetrics(fontSample, fontMetrics);
+            });
+
+            // text-* 部分
+            const textBox = document.getElementById('text-box');
+            const textSample = document.getElementById('text-sample');
+            const textMetrics = document.getElementById('text-metrics');
+            bindTextAlign(document.querySelectorAll('input[name="text-align"]'), textBox, textSample, textMetrics);
+            bindControl(document.getElementById('text-indent'), (v) => ({ 'text-indent': v + 'px' }), textSample, textMetrics, (v) => {
+                document.getElementById('text-indent-val').textContent = v + 'px';
+            });
+            bindControl(document.getElementById('letter-spacing'), (v) => ({ 'letter-spacing': v + 'px' }), textSample, textMetrics, (v) => {
+                document.getElementById('letter-spacing-val').textContent = v + 'px';
+            });
+            bindControl(document.getElementById('word-spacing'), (v) => ({ 'word-spacing': v + 'px' }), textSample, textMetrics, (v) => {
+                document.getElementById('word-spacing-val').textContent = v + 'px';
+            });
+            bindControl(document.getElementById('text-transform'), (v) => ({ 'text-transform': v }), textSample, textMetrics);
+            document.getElementById('text-reset').addEventListener('click', () => {
+                /** 重置 text-* 示例到默认值 */
+                textBox.style.textAlign = 'left';
+                applyStyles(textSample, {
+                    'text-indent': '0px',
+                    'letter-spacing': '0px',
+                    'word-spacing': '0px',
+                    'text-transform': 'none',
+                });
+                document.querySelector('input[name="text-align"][value="left"]').checked = true;
+                document.getElementById('text-indent').value = '0';
+                document.getElementById('text-indent-val').textContent = '0px';
+                document.getElementById('letter-spacing').value = '0';
+                document.getElementById('letter-spacing-val').textContent = '0px';
+                document.getElementById('word-spacing').value = '0';
+                document.getElementById('word-spacing-val').textContent = '0px';
+                document.getElementById('text-transform').value = 'none';
+                updateMetrics(textSample, textMetrics);
+            });
+
+            // line-* 部分
+            const lineBox = document.getElementById('line-box');
+            const lineSample = document.getElementById('line-sample');
+            const clampSample = document.getElementById('clamp-sample');
+            const lineMetrics = document.getElementById('line-metrics');
+            bindControl(document.getElementById('line-height'), (v) => ({ 'line-height': v }), lineSample, lineMetrics, (v) => {
+                document.getElementById('line-height-val').textContent = v;
+            });
+            bindControl(document.getElementById('line-break'), (v) => ({ 'line-break': v }), lineSample, lineMetrics);
+            bindControl(document.getElementById('line-clamp'), (v) => { setClampLines(clampSample, Number(v)); return {}; }, clampSample, lineMetrics, (v) => {
+                document.getElementById('line-clamp-val').textContent = v + ' 行';
+            });
+            document.getElementById('line-reset').addEventListener('click', () => {
+                /** 重置 line-* 示例到默认值 */
+                applyStyles(lineSample, { 'line-height': '1.6', 'line-break': 'auto' });
+                setClampLines(clampSample, 3);
+                document.getElementById('line-height').value = '1.6';
+                document.getElementById('line-height-val').textContent = '1.6';
+                document.getElementById('line-break').value = 'auto';
+                document.getElementById('line-clamp').value = '3';
+                document.getElementById('line-clamp-val').textContent = '3 行';
+                updateMetrics(lineSample, lineMetrics);
+            });
+
+            // 首次刷新所有度量
+            updateMetrics(fontSample, fontMetrics);
+            updateMetrics(textSample, textMetrics);
+            updateMetrics(lineSample, lineMetrics);
+        }
+
+        // 启动初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
