@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CSS DevTools 防抖与样式重算示例</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Microsoft YaHei", Arial, sans-serif; margin: 24px; }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fafafa; }
+    .card h2 { font-size: 16px; margin: 0 0 10px; }
+    .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; }
+    input[type="text"] { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+    .box { padding: 12px; background: #fff; border: 1px dashed #bbb; border-radius: 6px; min-height: 48px; }
+    .meta { font-size: 12px; color: #888; }
+    .count { font-weight: 600; color: #ff6a00; }
+  </style>
+</head>
+<body>
+  <h1>CSS DevTools 防抖与样式重算示例</h1>
+  <p>对比无防抖与防抖输入的样式更新次数，观察 Performance 中的 <em>Recalculate Style</em> 与 <em>Layout</em> 峰值差异。</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>实时更新（无防抖）</h2>
+      <div class="row">
+        <input id="inputLive" type="text" placeholder="输入任意字符，观察样式频繁更新" />
+      </div>
+      <div id="targetLive" class="box">目标（无防抖）：跟随输入实时改变字距与颜色。</div>
+      <p class="meta">样式更新次数：<span id="countLive" class="count">0</span></p>
+    </div>
+
+    <div class="card">
+      <h2>防抖更新（120ms）</h2>
+      <div class="row">
+        <input id="inputDebounced" type="text" placeholder="快速输入，观察更新节流效果" />
+      </div>
+      <div id="targetDebounced" class="box">目标（防抖）：延迟 120ms 执行样式更新。</div>
+      <p class="meta">样式更新次数：<span id="countDebounced" class="count">0</span></p>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 计算并更新字距与颜色等样式
+     * 作用：将输入的长度映射为字距/颜色，以便在 DevTools 中观察 Styles/Computed 的变化
+     * 为什么：通过高频更新可直观看到样式重算/布局/绘制的开销
+     * @param {HTMLElement} el - 目标元素
+     * @param {string} text - 输入文本
+     */
+    function updateStyles(el, text) {
+      const len = text.length;
+      // 将长度映射到 0~0.1em 的字距，便于观察细微变化
+      const ls = Math.min(0.1, (len % 10) / 100);
+      // 将长度映射到颜色明度，形成视觉反馈
+      const lightness = 30 + (len % 20) * 2; // 30~70
+      el.style.letterSpacing = `${ls}em`;
+      el.style.color = `hsl(20, 90%, ${lightness}%)`;
+      el.textContent = `字距: ${ls}em, 颜色明度: ${lightness}%，文本: ${text || '（空）'}`;
+    }
+
+    /**
+     * 无防抖绑定：每次输入都立即更新样式
+     * 作用：展示高频样式重算的情况
+     * 为什么：对比防抖版本，突出 Recalculate Style 峰值差异
+     * @param {HTMLInputElement} input - 输入框
+     * @param {HTMLElement} target - 目标元素
+     * @param {HTMLElement} countEl - 计数显示元素
+     */
+    function attachLiveUpdate(input, target, countEl) {
+      let count = 0;
+      input.addEventListener('input', () => {
+        updateStyles(target, input.value);
+        count += 1;
+        countEl.textContent = String(count);
+      });
+    }
+
+    /**
+     * 防抖：延迟执行函数，减少短时间内的频繁样式重算
+     * 作用：输入/拖动等高频事件下，避免造成 Recalculate Style 的抖动
+     * 为什么：在 Performance 里常见样式重算过多，防抖能平滑用户体验
+     * @param {Function} fn - 需要被防抖的函数
+     * @param {number} delay - 延迟毫秒数
+     * @returns {Function} - 包装后的函数
+     */
+    function debounce(fn, delay) {
+      let t;
+      return function (...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+
+    /**
+     * 防抖绑定：以固定延迟合并输入事件，降低样式更新频率
+     * 作用：更贴近真实项目的交互优化
+     * 为什么：减少样式重算与布局触发，有助于保持更高 FPS
+     * @param {HTMLInputElement} input - 输入框
+     * @param {HTMLElement} target - 目标元素
+     * @param {HTMLElement} countEl - 计数显示元素
+     * @param {number} delay - 防抖延迟毫秒数
+     */
+    function attachDebouncedUpdate(input, target, countEl, delay) {
+      let count = 0;
+      const runner = debounce(() => {
+        updateStyles(target, input.value);
+        count += 1;
+        countEl.textContent = String(count);
+      }, delay);
+      input.addEventListener('input', runner);
+    }
+
+    // 初始化绑定
+    const inputLive = document.getElementById('inputLive');
+    const targetLive = document.getElementById('targetLive');
+    const countLive = document.getElementById('countLive');
+    attachLiveUpdate(inputLive, targetLive, countLive);
+
+    const inputDebounced = document.getElementById('inputDebounced');
+    const targetDebounced = document.getElementById('targetDebounced');
+    const countDebounced = document.getElementById('countDebounced');
+    attachDebouncedUpdate(inputDebounced, targetDebounced, countDebounced, 120);
+  </script>
+</body>
+</html>

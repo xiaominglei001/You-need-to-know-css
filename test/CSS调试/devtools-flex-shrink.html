@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CSS DevTools：Flex 收缩与首选尺寸演示</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Microsoft YaHei", Arial, sans-serif; margin: 24px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    p { margin: 0 0 10px; color: #666; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 1000px; }
+
+    .container-wrap { border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; background: #fafafa; }
+    .cardList { display: flex; gap: 12px; border: 1px dashed #bbb; padding: 12px; background: #fff; }
+    .card { flex: 1 1 0; /* 易过度收缩的设置 */
+            border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #f9f9f9; }
+    .card h2 { font-size: 14px; margin: 0 0 6px; }
+    .card p { font-size: 12px; color: #555; }
+
+    .controls { display: grid; grid-template-columns: repeat(2, minmax(320px, 1fr)); gap: 12px; }
+    .cardCtrl { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fafafa; }
+    .row { display: grid; grid-template-columns: 140px 1fr auto; gap: 8px; align-items: center; }
+    input[type="range"], input[type="number"] { width: 100%; }
+    .btn { appearance: none; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .btn:hover { background: #f2f2f2; }
+    .meta { font-size: 12px; color: #888; }
+    .measures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+    .measure { background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 8px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>Flex 收缩与首选尺寸演示</h1>
+  <p>场景：子项设置 <code>flex: 1 1 0</code> 时，在容器缩小时易被过度压缩。通过设置 <code>flex-basis</code> 与 <code>min-width</code> 可限制最小尺寸。</p>
+
+  <div class="grid">
+    <div class="container-wrap">
+      <div id="cardList" class="cardList">
+        <div class="card"><h2>卡片 A</h2><p>示例文本，观察宽度变化。</p></div>
+        <div class="card"><h2>卡片 B</h2><p>示例文本，观察宽度变化。</p></div>
+        <div class="card"><h2>卡片 C</h2><p>示例文本，观察宽度变化。</p></div>
+      </div>
+      <div class="measures">
+        <div class="measure">A 宽度：<span id="wA">-</span>px</div>
+        <div class="measure">B 宽度：<span id="wB">-</span>px</div>
+        <div class="measure">C 宽度：<span id="wC">-</span>px</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="cardCtrl">
+        <div class="row">
+          <label>容器宽度</label>
+          <input id="containerW" type="range" min="320" max="960" value="960">
+          <input id="containerWNum" type="number" min="320" max="960" value="960">
+        </div>
+        <div class="row">
+          <label>flex-basis</label>
+          <input id="basis" type="range" min="0" max="360" value="0">
+          <input id="basisNum" type="number" min="0" max="360" value="0">
+        </div>
+        <div class="row">
+          <label>min-width</label>
+          <input id="minW" type="range" min="0" max="360" value="0">
+          <input id="minWNum" type="number" min="0" max="360" value="0">
+        </div>
+        <div class="row">
+          <label>flex-shrink</label>
+          <input id="shrink" type="range" min="0" max="5" value="1">
+          <input id="shrinkNum" type="number" min="0" max="5" value="1">
+        </div>
+        <p class="meta">提示：配合 DevTools 的 Flex Overlay 观察空间分配；适当设置 <code>flex-basis</code> 与 <code>min-width</code> 能避免子项过度压缩。</p>
+      </div>
+
+      <div class="cardCtrl">
+        <p><b>如何观察：</b></p>
+        <ul>
+          <li>缩小容器宽度，查看三张卡片的实时宽度读数与 Overlay 分配效果。</li>
+          <li>增加 <code>flex-basis</code> 或设置 <code>min-width</code>，防止文本不可读。</li>
+          <li>调低 <code>flex-shrink</code>，对子项收缩进行限制。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 设置容器的固定宽度
+     * 作用：模拟响应式场景下容器变窄，观察子项收缩情况
+     * 为什么：通过可控宽度快速触发 Flex 的空间分配与收缩行为
+     * @param {number} w - 容器宽度（像素）
+     */
+    function setContainerWidth(w) {
+      const list = document.getElementById('cardList');
+      list.style.width = `${w}px`;
+      measureCards();
+    }
+
+    /**
+     * 应用 Flex 子项的关键属性
+     * 作用：统一设置所有 .card 的 flex-basis/min-width/shrink，形成对比实验
+     * 为什么：直观展示这三者对收缩的影响，便于在 DevTools Overlay 中观察分配变化
+     * @param {number} basis - 首选尺寸（px）
+     * @param {number} minWidth - 最小宽度（px）
+     * @param {number} shrink - 收缩系数
+     */
+    function applyFlexSettings(basis, minWidth, shrink) {
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        card.style.flexBasis = `${basis}px`;
+        card.style.minWidth = `${minWidth}px`;
+        card.style.flexShrink = String(shrink);
+      });
+      measureCards();
+    }
+
+    /**
+     * 读取三张卡片的实际宽度，展示到页面上
+     * 作用：提供量化反馈，帮助理解设置对最终布局的影响
+     * 为什么：结合 DevTools 的 Computed（最终值）与 Overlay（分配）形成证据链
+     */
+    function measureCards() {
+      const cards = document.querySelectorAll('.card');
+      const ws = Array.from(cards).map(c => Math.round(c.getBoundingClientRect().width));
+      const [wA, wB, wC] = ws;
+      document.getElementById('wA').textContent = String(wA);
+      document.getElementById('wB').textContent = String(wB);
+      document.getElementById('wC').textContent = String(wC);
+    }
+
+    /**
+     * 初始化控件与默认值
+     * 作用：连接 UI 与样式，形成可重复的交互演示
+     * 为什么：贴近真实调试流程，便于快速定位“谁在过度收缩”
+     */
+    function init() {
+      // 默认宽度 960，basis=0，minWidth=0，shrink=1
+      setContainerWidth(960);
+      applyFlexSettings(0, 0, 1);
+
+      const containerW = document.getElementById('containerW');
+      const containerWNum = document.getElementById('containerWNum');
+      const syncW = (val) => { setContainerWidth(Number(val)); containerW.value = String(val); containerWNum.value = String(val); };
+      containerW.addEventListener('input', e => syncW(e.target.value));
+      containerWNum.addEventListener('input', e => syncW(e.target.value));
+
+      const basis = document.getElementById('basis');
+      const basisNum = document.getElementById('basisNum');
+      const minW = document.getElementById('minW');
+      const minWNum = document.getElementById('minWNum');
+      const shrink = document.getElementById('shrink');
+      const shrinkNum = document.getElementById('shrinkNum');
+
+      const sync = () => applyFlexSettings(Number(basis.value), Number(minW.value), Number(shrink.value));
+      const syncBasis = (val) => { basis.value = String(val); basisNum.value = String(val); sync(); };
+      const syncMinW = (val) => { minW.value = String(val); minWNum.value = String(val); sync(); };
+      const syncShrink = (val) => { shrink.value = String(val); shrinkNum.value = String(val); sync(); };
+
+      basis.addEventListener('input', e => syncBasis(e.target.value));
+      basisNum.addEventListener('input', e => syncBasis(e.target.value));
+      minW.addEventListener('input', e => syncMinW(e.target.value));
+      minWNum.addEventListener('input', e => syncMinW(e.target.value));
+      shrink.addEventListener('input', e => syncShrink(e.target.value));
+      shrinkNum.addEventListener('input', e => syncShrink(e.target.value));
+    }
+
+    init();
+  </script>
+</body>
+</html>

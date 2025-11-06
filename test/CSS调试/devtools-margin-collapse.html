@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CSS DevTools：Margin 塌陷（外边距合并）演示</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Microsoft YaHei", Arial, sans-serif; margin: 24px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    p { margin: 0 0 10px; color: #666; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 900px; }
+
+    .wrapper { background: #f7f7f7; border: 1px solid #e5e5e5; border-radius: 8px; }
+    .title { margin-top: 24px; padding: 12px; background: #fff; border-bottom: 1px solid #eee; }
+    .content { padding: 12px; color: #444; }
+
+    .fix-bfc { overflow: auto; }
+    .fix-padding { padding-top: 1px; }
+    .fix-border { border-top: 1px solid transparent; }
+
+    .panel { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fafafa; }
+    .row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: center; }
+    .btn { appearance: none; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .btn:hover { background: #f2f2f2; }
+    .meta { font-size: 12px; color: #888; }
+    .fixes { display: flex; gap: 12px; }
+    label { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Margin 塌陷（外边距合并）演示</h1>
+  <p>场景：子元素 <code>.title</code> 的 <code>margin-top</code> 与父元素 <code>.wrapper</code> 发生外边距合并，看起来像“作用在了父元素上”。通过产生 BFC 或增加 <code>padding/border</code> 可打断塌陷。</p>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="wrapper" id="wrapper">
+        <h2 class="title" id="title">标题（margin-top: 24px）</h2>
+        <div class="content">这里是内容区域。使用 DevTools 的 Elements → Computed 观察盒模型的 <code>margin</code> 高亮，确认是否发生塌陷。</div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <label>应用修复</label>
+          <div class="fixes">
+            <label><input type="radio" name="fix" value="none" checked> 不修复</label>
+            <label><input type="radio" name="fix" value="bfc"> BFC：overflow: auto</label>
+            <label><input type="radio" name="fix" value="padding"> padding-top: 1px</label>
+            <label><input type="radio" name="fix" value="border"> border-top: 1px transparent</label>
+          </div>
+        </div>
+        <p class="meta">提示：选择不同修复方式，观察盒模型与布局的变化。BFC（块级格式化上下文）能阻止父子间的边距合并。</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 应用/移除对 Margin 塌陷的修复方式
+     * 作用：为父元素 .wrapper 添加不同的“打断塌陷”策略（BFC、padding、border）
+     * 为什么：用最小改动复现与修复问题，便于在 DevTools 的 Styles/Computed 中观察证据链
+     * @param {('none'|'bfc'|'padding'|'border')} mode - 修复模式
+     */
+    function applyFix(mode) {
+      const wrapper = document.getElementById('wrapper');
+      wrapper.classList.remove('fix-bfc', 'fix-padding', 'fix-border');
+      switch (mode) {
+        case 'bfc':
+          wrapper.classList.add('fix-bfc');
+          break;
+        case 'padding':
+          wrapper.classList.add('fix-padding');
+          break;
+        case 'border':
+          wrapper.classList.add('fix-border');
+          break;
+        default:
+          // 不修复
+      }
+    }
+
+    /**
+     * 初始化事件绑定
+     * 作用：连接单选按钮与修复策略，形成可重复的交互演示
+     * 为什么：更贴近真实项目的定位与验证过程
+     */
+    function init() {
+      const radios = document.querySelectorAll('input[name="fix"]');
+      radios.forEach(r => {
+        r.addEventListener('change', () => applyFix(r.value));
+      });
+      applyFix('none');
+    }
+
+    init();
+  </script>
+</body>
+</html>

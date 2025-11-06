@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CSS DevTools 类切换与动画示例</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Microsoft YaHei", Arial, sans-serif; margin: 24px; }
+    h1 { font-size: 20px; margin: 0 0 16px; }
+    p { margin: 0 0 12px; color: #666; }
+    .panel { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; max-width: 720px; }
+
+    /* 组件基础样式：用于演示常见的边框/间距问题 */
+    .box { padding: 12px; border: 1px solid #ddd; background: #fafafa; border-radius: 8px; transition: box-shadow .15s ease; }
+    .box:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+
+    /* 强调样式：便于在 DevTools 中观察级联覆盖 */
+    .highlight { outline: 3px solid #ff6a00; background: #fff3e6; }
+
+    /* 动画演示：方便在 Animations 面板查看时间线 */
+    .box.fade { animation: fadeIn 600ms ease; }
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+
+    .actions { display: flex; gap: 8px; align-items: center; }
+    .btn { appearance: none; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .btn:hover { background: #f2f2f2; }
+    .tip { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>CSS DevTools 类切换与动画示例</h1>
+  <p>用于在 DevTools 的 Styles/Computed/Animations 中观察级联变化与最终值。建议先按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> 选取元素，再在 Styles 面板试改属性。</p>
+
+  <div class="panel">
+    <div id="target" class="box">目标元素：点击下方按钮切换 <code>.highlight</code> 与触发淡入动画。</div>
+    <div class="actions">
+      <button id="btn" class="btn">切换 .highlight 并触发动画</button>
+    </div>
+  </div>
+  <p class="tip">提示：在 Styles 面板勾选/取消属性、使用键盘步进（↑/↓、Shift、Alt）微调数值；在 Animations 面板查看关键帧与时间线。</p>
+
+  <script>
+    /**
+     * 切换指定元素上的类名
+     * 作用：快速试验某个类对布局/样式的影响，便于在 DevTools 中观察 Styles/Computed 的差异
+     * 为什么：手动在 DevTools 添加/移除类效率不高，代码方式更可重复且易与交互绑定
+     * @param {HTMLElement} el - 目标元素
+     * @param {string} className - 要切换的类名
+     */
+    function toggleClass(el, className) {
+      el.classList.toggle(className);
+    }
+
+    /**
+     * 防抖：延迟执行函数，减少短时间内的频繁样式重算
+     * 作用：输入/拖动等高频事件下，避免造成 Recalculate Style 的抖动
+     * 为什么：在 Performance 里常见样式重算过多，防抖能平滑用户体验
+     * @param {Function} fn - 需要被防抖的函数
+     * @param {number} delay - 延迟毫秒数
+     * @returns {Function} - 包装后的函数
+     */
+    function debounce(fn, delay) {
+      let t;
+      return function (...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+
+    // 绑定交互，真实观察 DevTools 证据链
+    const target = document.getElementById('target');
+    const btn = document.getElementById('btn');
+    btn.addEventListener('click', () => {
+      toggleClass(target, 'highlight');
+      // 重新触发淡入动画：先移除类再异步添加，实现动画重播
+      target.classList.remove('fade');
+      setTimeout(() => target.classList.add('fade'), 0);
+    });
+  </script>
+</body>
+</html>

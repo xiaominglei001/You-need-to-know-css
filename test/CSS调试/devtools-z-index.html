@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CSS DevTools：z-index 与栈上下文演示</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Microsoft YaHei", Arial, sans-serif; margin: 24px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    p { margin: 0 0 10px; color: #666; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 900px; }
+
+    .scene { position: relative; padding: 24px; background: #f7f7f7; border: 1px solid #e5e5e5; border-radius: 8px; }
+    /* 初始：让父容器产生栈上下文 */
+    .scene.has-transform { transform: translateZ(0); }
+
+    .menu { position: absolute; top: 24px; left: 24px; z-index: 9999; padding: 12px 16px; background: #fff; border: 1px solid #ddd; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+    .menu b { color: #ff6a00; }
+
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 600; letter-spacing: .02em; }
+    .panel { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+    .controls { display: grid; grid-template-columns: repeat(2, minmax(240px, 1fr)); gap: 12px; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; background: #fafafa; }
+    .row { display: grid; grid-template-columns: 120px 1fr auto; gap: 8px; align-items: center; }
+    input[type="range"], input[type="number"] { width: 100%; }
+    .btn { appearance: none; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    .btn:hover { background: #f2f2f2; }
+    .meta { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <h1>z-index 与栈上下文演示</h1>
+  <p>场景：<code>.menu</code> 在父容器 <code>.scene</code> 内，父容器若有 <code>transform</code> 会创建新的栈上下文，导致 <code>.menu</code> 的 <code>z-index</code> 只能在该上下文中比较，无法覆盖根上下文中的 <code>.overlay</code>。</p>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="scene has-transform" id="scene">
+        <div class="menu" id="menu">菜单（z-index: <b id="menuZText">9999</b>）</div>
+        <p class="meta">提示：使用 DevTools 的 Elements → Styles/Computed 与 Layers 面板，观察 <code>transform</code> 对栈上下文与图层的影响。</p>
+      </div>
+      <div class="overlay" id="overlay">遮罩（z-index: <span id="overlayZText">100</span>）</div>
+    </div>
+
+    <div class="controls">
+      <div class="card">
+        <div class="row">
+          <label>父容器 transform</label>
+          <button id="toggleTransform" class="btn">移除 transform</button>
+          <span class="meta" id="transformState">当前：存在栈上下文</span>
+        </div>
+        <div class="row">
+          <label>遮罩 z-index</label>
+          <input id="overlayZ" type="range" min="0" max="2000" value="100">
+          <input id="overlayZNum" type="number" min="0" max="2000" value="100">
+        </div>
+        <div class="row">
+          <label>菜单 z-index</label>
+          <input id="menuZ" type="range" min="0" max="10000" value="9999">
+          <input id="menuZNum" type="number" min="0" max="10000" value="9999">
+        </div>
+      </div>
+
+      <div class="card">
+        <p><b>如何观察：</b></p>
+        <ul>
+          <li>开启/关闭父容器 <code>transform</code>，看菜单是否能“穿过”遮罩。</li>
+          <li>在 Styles 面板查看 <code>transform</code> 的开启如何改变级联与最终值。</li>
+          <li>在 Layers 面板观察图层变化，理解为何“同是 9999”仍可能被遮罩覆盖。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * 设置父容器是否带 transform
+     * 作用：模拟是否创建新的栈上下文，便于观察 .menu 的 z-index 与根上下文的比较关系
+     * 为什么：很多“z-index 失效”的本质是父级创建了栈上下文，子元素的 z-index 无法与外部比较
+     * @param {boolean} enabled - 是否启用 transform
+     */
+    function setSceneTransform(enabled) {
+      const scene = document.getElementById('scene');
+      const stateEl = document.getElementById('transformState');
+      if (enabled) {
+        scene.classList.add('has-transform');
+        stateEl.textContent = '当前：存在栈上下文';
+      } else {
+        scene.classList.remove('has-transform');
+        stateEl.textContent = '当前：无栈上下文';
+      }
+    }
+
+    /**
+     * 设置遮罩的 z-index
+     * 作用：对比根上下文中遮罩层级与 .menu 的层级关系
+     * 为什么：帮助理解不同上下文之间的层级比较和覆盖情况
+     * @param {number} z - 遮罩的 z-index
+     */
+    function setOverlayZ(z) {
+      const overlay = document.getElementById('overlay');
+      const overlayZText = document.getElementById('overlayZText');
+      overlay.style.zIndex = String(z);
+      overlayZText.textContent = String(z);
+    }
+
+    /**
+     * 设置菜单的 z-index
+     * 作用：在同一场景下调高/调低 .menu 的层级，结合是否有栈上下文观察最终覆盖效果
+     * 为什么：直观展示“子元素高 z-index 也可能被外部遮罩覆盖”的现象
+     * @param {number} z - 菜单的 z-index
+     */
+    function setMenuZ(z) {
+      const menu = document.getElementById('menu');
+      const menuZText = document.getElementById('menuZText');
+      menu.style.zIndex = String(z);
+      menuZText.textContent = String(z);
+    }
+
+    /**
+     * 初始化事件绑定与默认状态
+     * 作用：连接 UI 控件与样式变量，形成可重复的交互演示
+     * 为什么：便于在 DevTools 中“真实操作”，观察 Styles/Computed/Layers 的证据链
+     */
+    function init() {
+      // 默认：存在 transform（产生栈上下文），遮罩 100，菜单 9999
+      setSceneTransform(true);
+      setOverlayZ(100);
+      setMenuZ(9999);
+
+      const toggleTransform = document.getElementById('toggleTransform');
+      let hasTransform = true;
+      toggleTransform.addEventListener('click', () => {
+        hasTransform = !hasTransform;
+        setSceneTransform(hasTransform);
+        toggleTransform.textContent = hasTransform ? '移除 transform' : '恢复 transform';
+      });
+
+      const overlayZ = document.getElementById('overlayZ');
+      const overlayZNum = document.getElementById('overlayZNum');
+      const syncOverlay = (val) => { setOverlayZ(Number(val)); overlayZ.value = String(val); overlayZNum.value = String(val); };
+      overlayZ.addEventListener('input', (e) => syncOverlay(e.target.value));
+      overlayZNum.addEventListener('input', (e) => syncOverlay(e.target.value));
+
+      const menuZ = document.getElementById('menuZ');
+      const menuZNum = document.getElementById('menuZNum');
+      const syncMenu = (val) => { setMenuZ(Number(val)); menuZ.value = String(val); menuZNum.value = String(val); };
+      menuZ.addEventListener('input', (e) => syncMenu(e.target.value));
+      menuZNum.addEventListener('input', (e) => syncMenu(e.target.value));
+    }
+
+    init();
+  </script>
+</body>
+</html>
