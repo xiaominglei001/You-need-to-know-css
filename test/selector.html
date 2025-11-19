@@ -425,6 +425,13 @@
                     <div class="css">li:not(.active)</div>
                     <div class="note">排除 .active 的项</div>
                 </div>
+
+                <div class="group-title">选择器列表（逗号）</div>
+                <div class="example" data-selector=".card, .nav a" data-css=".card, .nav a { /* 选择器列表：并集，命中卡片和导航链接 */ }">
+                    <div class="name">逗号分隔选择器</div>
+                    <div class="css">.card, .nav a</div>
+                    <div class="note">并集：匹配任一选择器命中的元素</div>
+                </div>
             </div>
         </aside>
 
@@ -500,6 +507,7 @@
             <footer class="tips">
                 - 权重（specificity）格式为 A,B,C：A=ID 数量，B=类/属性/伪类数量，C=标签/伪元素数量。
                 - :hover 在键鼠悬停时才会命中；本示例提供 <code>.is-hover</code> 类模拟以便查看效果与匹配。
+                - 逗号 <code>,</code> 将多个选择器组成“选择器列表”（并集）：样式会应用到任一命中元素；权重按每条选择器分别计算并参与层叠。
             </footer>
         </main>
     </div>
@@ -585,6 +593,26 @@
         }
 
         /**
+         * 更新权重显示：当输入为逗号分隔的“选择器列表”时，逐条计算并拼接展示
+         * 为什么要这样做：逗号表示并集，列表中的每条选择器都有独立的权重，统一统计会造成误解
+         * 展示形式示例：`.card, .nav a` -> "0,1,1 | 0,1,1"
+         * @param {string} selectorList - 可能包含逗号的选择器字符串
+         */
+        function updateSpecificityForSelectorList(selectorList) {
+            const parts = selectorList.split(',').map(s => s.trim()).filter(Boolean);
+            if (parts.length <= 1) {
+                // 回退到单条显示逻辑
+                updateSpecificityDisplay(calcSpecificity(selectorList));
+                return;
+            }
+            const texts = parts.map(p => {
+                const sp = calcSpecificity(p);
+                return `${sp.a},${sp.b},${sp.c}`;
+            });
+            qs('#specificity').textContent = texts.join(' | ');
+        }
+
+        /**
          * 在右侧规则片段区域显示示意 CSS
          * @param {string} cssText - 要展示的 CSS 文本
          */
@@ -650,7 +678,11 @@
             highlightMatches(result);
 
             // 更新权重显示
-            updateSpecificityDisplay(calcSpecificity(selector));
+            if (selector.includes(',')) {
+                updateSpecificityForSelectorList(selector);
+            } else {
+                updateSpecificityDisplay(calcSpecificity(selector));
+            }
         }
 
         /**

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS 浮动（float）布局详解</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+                Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h1, h2 {
+            color: #005a9c;
+            border-bottom: 2px solid #005a9c;
+            padding-bottom: 10px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .example-box {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin-top: 20px;
+            background-color: #e9f5ff;
+        }
+
+        .box {
+            width: 100px;
+            height: 100px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border-radius: 5px;
+        }
+
+        .left-box { background-color: #3498db; float: left; margin: 0 15px 10px 0; }
+        .right-box { background-color: #e74c3c; float: right; margin: 0 0 10px 15px; }
+        .second-box { background-color: #9b59b6; float: left; margin: 0 15px 10px 0; }
+
+        .clear-both { clear: both; }
+
+        .bfc { overflow: hidden; }
+
+        .clearfix::after { content: ""; display: block; clear: both; }
+
+        .two-col { background: #fefefe; border: 1px solid #ddd; }
+        .two-col .sidebar { width: 200px; float: left; background: #005a9c; color: #fff; padding: 10px; box-sizing: border-box; }
+        .two-col .content { margin-left: 220px; background: #fafafa; padding: 10px; box-sizing: border-box; }
+        .two-col .footer { clear: both; background: #eee; padding: 10px; }
+
+        code { padding: 2px 4px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; }
+        pre { background-color: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>CSS 浮动（float）详解</h1>
+        <p><code>float</code> 最初用于让文字环绕图片，如报纸排版。元素被设置为浮动后，会脱离正常文档流的普通布局上下文，但仍参与行内内容的环绕排版。常见取值为 <code>left</code> 与 <code>right</code>，并常与 <code>clear</code>、BFC（如 <code>overflow: hidden</code>）或 <code>clearfix</code> 技术结合使用以处理父元素高度塌陷问题。</p>
+
+        <!-- 1. 基础 float：文字环绕 -->
+        <section id="basic-float">
+            <h2>1. 基础浮动与文字环绕</h2>
+            <div class="example-box">
+                <div class="box left-box">float: left</div>
+                <div class="box right-box">float: right</div>
+                <p>
+                    这个示例同时包含一个左浮动和一个右浮动方块。你会看到段落文字会自动在它们之间环绕。浮动元素会尽可能贴近容器的左/右边界，并向上“收缩”直到不能再上移。
+                </p>
+                <p>
+                    当元素浮动后，它不再占据正常文档流中的空间，因此父容器的高度可能不会包含它们，这就是常说的“高度塌陷”，需要通过 <code>clear</code> 或 BFC/clearfix 来处理。
+                </p>
+            </div>
+            <pre><code>.left-box { float: left; }
+.right-box { float: right; }
+/* 文本会在浮动元素周围自动环绕 */
+</code></pre>
+        </section>
+
+        <!-- 2. 清除浮动：clear -->
+        <section id="clear">
+            <h2>2. 使用 <code>clear</code> 清除浮动</h2>
+            <div class="example-box">
+                <div class="box left-box">A</div>
+                <div class="box second-box">B</div>
+                <p>上面两个方块都在左侧浮动。下面这个段落设置了 <code>clear: both</code>，因此会在浮动元素之后另起一行，从而“清除”浮动影响。</p>
+                <p class="clear-both">我使用了 clear: both，因此我会在所有浮动元素之后开始布局。</p>
+            </div>
+            <pre><code>.clear-both { clear: both; }
+/* 清除左右方向上的浮动影响 */
+</code></pre>
+        </section>
+
+        <!-- 3. 父元素高度塌陷与 BFC/clearfix -->
+        <section id="collapse">
+            <h2>3. 解决父元素高度塌陷：BFC 与 clearfix</h2>
+            <p>当子元素全部浮动时，父容器可能因为不包含浮动而看似高度为 0。可以通过创建 BFC 或使用 clearfix 让父容器包裹浮动子元素。</p>
+
+            <h3>3.1 使用 BFC（例如 <code>overflow: hidden</code>）</h3>
+            <div class="example-box bfc">
+                <div class="box left-box">A</div>
+                <div class="box second-box">B</div>
+                <p>父容器设置了 <code>overflow: hidden</code>，创建了一个新的块级格式化上下文（BFC），从而包含浮动子元素。</p>
+            </div>
+            <pre><code>.bfc { overflow: hidden; }
+/* 创建 BFC，父容器会包裹浮动子元素 */
+</code></pre>
+
+            <h3>3.2 使用 clearfix</h3>
+            <div class="example-box clearfix">
+                <div class="box left-box">A</div>
+                <div class="box second-box">B</div>
+                <p>父容器应用了 <code>.clearfix</code>，其伪元素在文档流中清除了前面的浮动。</p>
+            </div>
+            <pre><code>.clearfix::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+</code></pre>
+        </section>
+
+        <!-- 4. 常见布局：两列（左侧栏 + 主内容） -->
+        <section id="two-col">
+            <h2>4. 常见布局：两列（浮动侧栏 + 主内容）</h2>
+            <div class="example-box two-col">
+                <div class="sidebar">侧栏（float: left; 宽度 200px）</div>
+                <div class="content">
+                    <p>主内容区域使用常规文档流，通过设置 <code>margin-left</code> 留出与侧栏相同（含间距）的空间，实现两列布局。</p>
+                    <p>这种布局在 Flexbox 普及前非常常见，注意需要在尾部清除浮动以避免后续元素受到影响。</p>
+                </div>
+                <div class="footer">这里通过 <code>clear: both</code> 清除了上面的浮动。</div>
+            </div>
+            <pre><code>.two-col .sidebar { float: left; width: 200px; }
+.two-col .content { margin-left: 220px; }
+.two-col .footer { clear: both; }
+</code></pre>
+        </section>
+
+        <h2>总结</h2>
+        <table border="1" cellpadding="5" cellspacing="0" width="100%">
+            <thead>
+                <tr>
+                    <th>概念/属性</th>
+                    <th>行为描述</th>
+                    <th>是否脱离普通文档流</th>
+                    <th>常见用途</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>float: left|right</code></td>
+                    <td>元素浮动到容器的左/右侧，文本在其周围环绕。</td>
+                    <td>部分脱离（不占据常规块级高度）。</td>
+                    <td>图文混排、早期列布局。</td>
+                </tr>
+                <tr>
+                    <td><code>clear: left|right|both</code></td>
+                    <td>当前块在指定方向的浮动元素之后开始布局。</td>
+                    <td>否。</td>
+                    <td>终止浮动影响、保证布局顺序。</td>
+                </tr>
+                <tr>
+                    <td>BFC（如 <code>overflow: hidden</code>）</td>
+                    <td>创建新的格式化上下文，使父容器包含浮动子元素。</td>
+                    <td>否。</td>
+                    <td>解决高度塌陷、隔离外边距折叠。</td>
+                </tr>
+                <tr>
+                    <td><code>.clearfix::after</code></td>
+                    <td>通过伪元素在文档流中清除前面的浮动。</td>
+                    <td>否。</td>
+                    <td>通用的浮动清除方案，低成本。</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSS 层叠原理交互演示</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --card-bg: #fff;
+            --primary: #3498db;
+            --border: #ddd;
+            --code-bg: #2d2d2d;
+            --code-text: #ccc;
+            --highlight: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 { text-align: center; margin-bottom: 10px; }
+        p.subtitle { text-align: center; color: #666; max-width: 600px; margin-bottom: 30px; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            width: 100%;
+            max-width: 1000px;
+            justify-content: center;
+        }
+
+        /* 左侧：控制面板 */
+        .controls {
+            flex: 1;
+            min-width: 300px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .rule-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            background: #fafafa;
+            transition: all 0.3s ease;
+        }
+
+        .rule-item.winning {
+            border-color: var(--primary);
+            background-color: #eaf6ff;
+            box-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+            transform: scale(1.02);
+        }
+
+        .rule-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .rule-code {
+            font-family: 'Consolas', monospace;
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .specificity-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: #eee;
+            color: #555;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        /* 右侧：预览区域 */
+        .preview {
+            flex: 1;
+            min-width: 300px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        #target-box {
+            width: 200px;
+            height: 200px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 5px solid transparent;
+            /* 默认样式 */
+            background-color: #ccc;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff8e1;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .explanation strong { color: #d35400; }
+
+        /* 演示用的动态样式类 */
+        /* 注意：实际演示中我们会用JS动态插入style标签来模拟真实层叠，
+           或者直接在这里定义，利用JS切换class */
+        
+        /* 基础复选框样式 */
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .color-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+    </style>
+    <!-- 这里是我们将要动态注入样式的区域 -->
+    <style id="dynamic-styles"></style>
+</head>
+<body>
+
+    <h1>CSS 层叠 (Cascade) 可视化</h1>
+    <p class="subtitle">勾选不同的规则，观察谁“赢了”。<br>层叠顺序：!important > 内联样式 > ID > 类 > 标签</p>
+
+    <div class="container">
+        <!-- 控制区 -->
+        <div class="controls" id="rules-list">
+            <!-- 规则将由 JS 生成 -->
+        </div>
+
+        <!-- 预览区 -->
+        <div class="preview">
+            <div id="preview-container">
+                <!-- 目标元素 -->
+                <div id="demo-box" class="box">我是目标元素</div>
+            </div>
+            
+            <div class="explanation" id="status-text">
+                请勾选左侧的规则开始测试。
+            </div>
+            <p>
+层叠的三大判断标准
+
+浏览器在判断谁覆盖谁时，严格按照以下 3 个步骤 的顺序进行比较。一旦在某一步分出了胜负，就不再往后看了。
+
+第一步：重要性（Importance）
+
+这是最高级的“权限”。
+
+带有 !important 标记的样式优先级最高。
+
+如果没有 !important，则看下一步。
+
+第二步：优先级/权重（Specificity）
+
+如果都没有 !important，浏览器会计算选择器的权重分值。
+
+内联样式（写在 HTML 标签里的 style="..."） >
+
+ID 选择器 (#id) >
+
+类/属性/伪类选择器 (.class, [type="text"], :hover) >
+
+标签/伪元素选择器 (div, p, ::before)
+
+比如： #my-text 的权限比 .text 高，所以 ID 里的 font-size 会覆盖 Class 里的。
+
+第三步：源代码顺序（Source Order）
+
+如果权重也完全一样（比如都是类选择器，或者都是标签选择器），那么**“后发制人”**。
+
+写在 CSS 文件后面的规则，会覆盖写在前面的。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 定义演示用的规则数据
+        const rules = [
+            {
+                id: 'rule-tag',
+                selector: 'div',
+                style: 'background-color: gray;',
+                desc: '标签选择器',
+                specificity: [0, 0, 1], // (ID, Class, Tag)
+                colorName: '灰色 (Gray)',
+                colorVal: 'gray',
+                important: false,
+                inline: false
+            },
+            {
+                id: 'rule-class-1',
+                selector: '.box',
+                style: 'background-color: #3498db;', // Blue
+                desc: '类选择器 (A)',
+                specificity: [0, 1, 0],
+                colorName: '蓝色 (Blue)',
+                colorVal: '#3498db',
+                important: false,
+                inline: false
+            },
+            {
+                id: 'rule-class-2',
+                selector: '.box',
+                style: 'background-color: #9b59b6;', // Purple
+                desc: '类选择器 (B) - 源码靠后',
+                specificity: [0, 1, 0],
+                colorName: '紫色 (Purple)',
+                colorVal: '#9b59b6',
+                important: false,
+                inline: false
+            },
+            {
+                id: 'rule-id',
+                selector: '#demo-box',
+                style: 'background-color: #2ecc71;', // Green
+                desc: 'ID 选择器',
+                specificity: [1, 0, 0],
+                colorName: '绿色 (Green)',
+                colorVal: '#2ecc71',
+                important: false,
+                inline: false
+            },
+            {
+                id: 'rule-inline',
+                selector: 'inline style',
+                style: 'background-color: #e67e22;', // Orange
+                desc: '内联样式 (HTML style="")',
+                specificity: [1, 0, 0, 0], // Inline is level 1000
+                colorName: '橙色 (Orange)',
+                colorVal: '#e67e22',
+                important: false,
+                inline: true
+            },
+            {
+                id: 'rule-important',
+                selector: '.box',
+                style: 'background-color: #e74c3c !important;', // Red
+                desc: '!important (核武器)',
+                specificity: [0, 1, 0], // Spec is technically same, but !important flag overrides
+                colorName: '红色 (Red)',
+                colorVal: '#e74c3c',
+                important: true,
+                inline: false
+            }
+        ];
+
+        const rulesListEl = document.getElementById('rules-list');
+        const dynamicStylesEl = document.getElementById('dynamic-styles');
+        const demoBox = document.getElementById('demo-box');
+        const statusText = document.getElementById('status-text');
+
+        // 初始化渲染
+        function init() {
+            rules.forEach((rule, index) => {
+                const div = document.createElement('div');
+                div.className = 'rule-item';
+                div.id = `item-${index}`;
+                
+                // 计算可读的权重文本
+                let specText = `(${rule.specificity.join(',')})`;
+                if(rule.inline) specText = "(1,0,0,0) 内联";
+                if(rule.important) specText += " !important";
+
+                const codeDisplay = rule.inline 
+                    ? `style="${rule.style}"` 
+                    : `${rule.selector} { ${rule.style} }`;
+
+                div.innerHTML = `
+                    <div class="rule-content">
+                        <input type="checkbox" id="cb-${index}" onchange="updateState()">
+                        <div>
+                            <div class="rule-code">
+                                <span class="color-dot" style="background:${rule.colorVal}"></span>
+                                ${codeDisplay}
+                            </div>
+                            <div style="font-size:0.85rem; color:#666; margin-top:4px;">
+                                ${rule.desc}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="specificity-badge" title="权重 (ID, 类, 标签)">${specText}</div>
+                `;
+                rulesListEl.appendChild(div);
+            });
+        }
+
+        // 核心逻辑：每次勾选变化时执行
+        function updateState() {
+            let activeRules = [];
+            let cssString = "";
+            let inlineStyle = "";
+
+            // 1. 收集所有被勾选的规则
+            rules.forEach((rule, index) => {
+                const cb = document.getElementById(`cb-${index}`);
+                const item = document.getElementById(`item-${index}`);
+                item.classList.remove('winning'); // 重置高亮
+
+                if (cb.checked) {
+                    activeRules.push({ ...rule, originalIndex: index });
+                    
+                    // 构建 CSS 字符串注入页面
+                    if (!rule.inline) {
+                        cssString += `${rule.selector} { ${rule.style} } \n`;
+                    } else {
+                        // 内联样式特殊处理（去掉末尾分号防止格式错误）
+                        inlineStyle = rule.style.replace(';', '');
+                    }
+                }
+            });
+
+            // 2. 应用样式到页面
+            dynamicStylesEl.innerHTML = cssString;
+            demoBox.style.cssText = inlineStyle; // 应用内联样式
+
+            // 3. 计算谁赢了 (模拟浏览器的层叠逻辑)
+            if (activeRules.length === 0) {
+                statusText.innerHTML = "未选择任何规则，使用浏览器默认样式。";
+                demoBox.style.backgroundColor = '#ccc'; // 恢复默认
+                return;
+            }
+
+            // 排序逻辑：
+            // 1. !important 优先级最高
+            // 2. 内联样式其次
+            // 3. Specificity (ID > Class > Tag)
+            // 4. 源码顺序 (Source Order) - 数组索引越大越靠后
+            
+            const winner = activeRules.sort((a, b) => {
+                // 1. Check !important
+                if (a.important && !b.important) return 1; // a wins
+                if (!a.important && b.important) return -1; // b wins
+                
+                // 如果都有或都没有 !important，继续比较
+
+                // 2. Check Inline (只有在没有 !important 或者都有 !important 时才比较这个，
+                //    但实际上 !important 会覆盖内联，所以逻辑要小心。
+                //    标准的层叠是：Origin/Importance -> Specificity -> Order)
+                
+                // 简化逻辑：给 !important 一个极大的虚拟权重
+                const getScore = (r) => {
+                    let score = 0;
+                    // 基础权重
+                    if (r.inline) score += 10000;
+                    else {
+                        score += r.specificity[0] * 100; // ID
+                        score += r.specificity[1] * 10;  // Class
+                        score += r.specificity[2] * 1;   // Tag
+                    }
+                    // !important 加成 (超过内联)
+                    if (r.important) score += 100000;
+                    
+                    return score;
+                };
+
+                const scoreA = getScore(a);
+                const scoreB = getScore(b);
+
+                if (scoreA > scoreB) return 1;
+                if (scoreA < scoreB) return -1;
+
+                // 3. 如果权重完全一样，看源代码顺序 (originalIndex)
+                return a.originalIndex - b.originalIndex;
+
+            }).pop(); // 取最后一个（最强的）
+
+            // 4. 更新 UI 反馈
+            const winnerItem = document.getElementById(`item-${winner.originalIndex}`);
+            winnerItem.classList.add('winning');
+            
+            // 生成解释文本
+            let reason = "";
+            if (winner.important) {
+                reason = "<strong>!important</strong> 覆盖了其他所有规则。";
+            } else if (winner.inline) {
+                reason = "<strong>内联样式 (Inline Style)</strong> 优先级高于 ID 和类。";
+            } else {
+                // 检查是否有同级竞争者
+                const competitors = activeRules.filter(r => r !== winner);
+                if (competitors.length > 0) {
+                    const runnerUp = competitors[competitors.length - 1]; // 第二名
+                    
+                    // 比较 winner 和 runnerUp
+                    const winSpec = winner.specificity;
+                    const runSpec = runnerUp.specificity;
+
+                    if (winSpec[0] > runSpec[0]) reason = "<strong>ID 选择器</strong> 权重高于 类/标签。";
+                    else if (winSpec[1] > runSpec[1]) reason = "<strong>类选择器</strong> 权重高于 标签。";
+                    else if (JSON.stringify(winSpec) === JSON.stringify(runSpec)) {
+                        reason = "权重相同，但此规则在<strong>源代码中顺序靠后</strong>，因此覆盖了前面的规则。";
+                    } else {
+                        reason = "此规则权重更高。";
+                    }
+                } else {
+                    reason = "当前只有一个规则生效。";
+                }
+            }
+
+            statusText.innerHTML = `
+                当前生效颜色：<strong>${winner.colorName}</strong><br>
+                获胜原因：${reason}
+            `;
+        }
+
+        init();
+    </script>
+</body>
+</html>
