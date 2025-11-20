@@ -6,19 +6,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+    <style>
+        .table-wrapper { margin-top: 16px; }
+        .comparison-table { width: 100%; border-collapse: separate; border-spacing: 0; background: #111827; color: #e5e7eb; border-radius: 12px; overflow: hidden; }
+        .comparison-table caption { text-align: left; padding: 12px 16px; font-weight: 600; color: #cbd5e1; background: #0f172a; }
+        .comparison-table thead th { background: #0f172a; font-weight: 600; padding: 12px 16px; border-bottom: 1px solid #1f2937; }
+        .comparison-table tbody th, .comparison-table tbody td { padding: 12px 16px; border-top: 1px solid #1f2937; vertical-align: top; line-height: 1.6; }
+        .comparison-table tbody tr:hover td, .comparison-table tbody tr:hover th { background: #0f172a; }
+        .comparison-table th.feature { width: 18%; color: #cbd5e1; font-weight: 600; }
+    </style>
 </head>
 
 <body>
     <div id="example">
+        <input type="text" v-model="message" placeholder="输入 message 试试" />
         <p>Original message: "{{ message }}"</p>
+        <p>Computed reversed message0: "{{ reversedMessage }}"</p>
         <p>Computed reversed message1: "{{ now1 }}"</p>
         <p>Computed reversed message2: "{{ now2 }}"</p>
         <p>Computed reversed message3: "{{ nowC }}"</p>
         <p>function message: "{{ nowTime() }}"</p>
         <p>在 Vue 中，计算属性是 基于它们的响应式依赖进行缓存的 。一个计算属性只有在它的某个响应式依赖发生变化时才会重新求值。</p>
-        <p>Date.now() 是一个 JavaScript 函数，它返回当前时间的数字时间戳。然而， Date.now() 不是一个响应式的依赖 ，前两个示例 Vue 在组件首次渲染时调用了一次 now 函数，得到了一个时间戳，然后就将这个结果缓存了起来。</p>
-        <p>vue 对前两个值的内心独白是：“这个值计算出来了，它的依赖项（实际上一个都没有）没变过，所以我不需要重新计算，用缓存里的旧值就行了。”</p>
-        <p>另外，“Mustache”语法，如这里的 {{ nowTime() }} 页面每次重新渲染时都会执行。它们不做任何缓存。</p>
+        <p>Date.now() 是一个 JavaScript 函数，它返回当前时间的数字时间戳。然而， Date.now() 不是一个响应式的依赖 ，now1和now2 在 Vue 组件首次渲染时各调用了一次 now 函数，得到了一个时间戳，然后就将这个结果缓存了起来。</p>
+        <p>Vue对这两个值的内心独白是：“这个值计算出来了，它的依赖项（实际上一个都没有）没变过，所以我不需要重新计算，用缓存里的旧值就行了。”</p>
+        <p>另外，“Mustache”模板语法，如这里的 {{ nowTime() }} 页面每次重新渲染时都会执行。它们不做任何缓存。</p>
+        <p>Watcher 示例：当你在输入框中修改 message 时，侦听器会记录新旧值，并更新反馈。</p>
+        <p>Watcher 反馈: "{{ watchedInfo }}"</p>
+        <div class="table-wrapper">
+            <table class="comparison-table">
+                <caption>计算属性 vs 侦听器 对比</caption>
+                <thead>
+                    <tr>
+                        <th class="feature">特性</th>
+                        <th>计算属性 (Computed Properties)</th>
+                        <th>侦听器 (Watcher)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th class="feature">目的</th>
+                        <td>派生新数据。用于根据一个或多个现有数据源，以声明式的方式计算出一个新的值。</td>
+                        <td>响应数据变化。用于在某个数据发生变化时，执行一个操作或副作用。</td>
+                    </tr>
+                    <tr>
+                        <th class="feature">本质</th>
+                        <td>声明式的数据转换。你定义的是“这个值是什么”。</td>
+                        <td>命令式的回调。你定义的是“当数据变化时做什么”。</td>
+                    </tr>
+                    <tr>
+                        <th class="feature">返回值</th>
+                        <td>必须有返回值。这个返回值会被缓存，并可以在模板中像普通数据一样使用。</td>
+                        <td>不需要返回值。它的主要工作是执行函数体内的逻辑。</td>
+                    </tr>
+                    <tr>
+                        <th class="feature">缓存</th>
+                        <td>会缓存。只有当它的响应式依赖发生变化时，才会重新计算。依赖不变，直接返回缓存结果。</td>
+                        <td>不会缓存。只要被侦听的数据变化，回调函数就总是会执行。</td>
+                    </tr>
+                    <tr>
+                        <th class="feature">使用场景</th>
+                        <td>当你需要一个值，这个值由其他数据计算而来。例如，从一个数组中过滤出“已完成”的项。</td>
+                        <td>当你需要在数据变化时执行异步操作或开销较大的操作。例如，当搜索框内容变化时，调用 API 进行搜索。</td>
+                    </tr>
+                    <tr>
+                        <th class="feature">代码风格</th>
+                        <td>更简洁，更符合“数据驱动”的理念。</td>
+                        <td>提供了更大的灵活性，但如果滥用，可能会让代码逻辑变得分散和难以追踪。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
     <script>
         var vm = new Vue({
@@ -27,6 +84,7 @@
                 message: 'Hello',
                 nowB: Date.now(),
                 nowC:Date.now(),
+                watchedInfo: '',
             },
             computed: {
                 // 计算属性的 getter
@@ -34,19 +92,30 @@
                     // `this` 指向 vm 实例
                     return this.message.split('').reverse().join('')
                 },
+                /** 计算当前时间戳（无依赖，首渲染后被缓存） */
                 now1: function () {
                     return Date.now()
                 },
+                /** 返回响应式数据 nowB，使得该计算属性依赖 nowB */
                 now2: function () {
                     return this.nowB
                 }
             },
+            /** 侦听器配置：用于在数据变化时执行副作用 */
+            watch: {
+                /** 侦听 message 的变化，更新反馈信息 */
+                message: function (newVal, oldVal) {
+                    this.watchedInfo = 'message 从 "' + oldVal + '" 变为 "' + newVal + '"';
+                },
+            },
+            /** 挂载后每秒更新时间戳，驱动重新渲染与侦听器 */
             mounted() {
                 setInterval(() => {
                     this.nowC = Date.now()
                 }, 1000);
             },
             methods: {
+                /** 模板中方法调用：每次渲染都会执行（不缓存） */
                 nowTime: function () {
                     return Date.now()
                 }
