@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+</head>
+
+<body>
+    <div id="example">
+        <p>Original message: "{{ message }}"</p>
+        <p>Computed reversed message1: "{{ now1 }}"</p>
+        <p>Computed reversed message2: "{{ now2 }}"</p>
+        <p>Computed reversed message3: "{{ nowC }}"</p>
+        <p>function message: "{{ nowTime() }}"</p>
+        <p>在 Vue 中，计算属性是 基于它们的响应式依赖进行缓存的 。一个计算属性只有在它的某个响应式依赖发生变化时才会重新求值。</p>
+        <p>Date.now() 是一个 JavaScript 函数，它返回当前时间的数字时间戳。然而， Date.now() 不是一个响应式的依赖 ，前两个示例 Vue 在组件首次渲染时调用了一次 now 函数，得到了一个时间戳，然后就将这个结果缓存了起来。</p>
+        <p>vue 对前两个值的内心独白是：“这个值计算出来了，它的依赖项（实际上一个都没有）没变过，所以我不需要重新计算，用缓存里的旧值就行了。”</p>
+        <p>另外，“Mustache”语法，如这里的 {{ nowTime() }} 页面每次重新渲染时都会执行。它们不做任何缓存。</p>
+    </div>
+    <script>
+        var vm = new Vue({
+            el: '#example',
+            data: {
+                message: 'Hello',
+                nowB: Date.now(),
+                nowC:Date.now(),
+            },
+            computed: {
+                // 计算属性的 getter
+                reversedMessage: function () {
+                    // `this` 指向 vm 实例
+                    return this.message.split('').reverse().join('')
+                },
+                now1: function () {
+                    return Date.now()
+                },
+                now2: function () {
+                    return this.nowB
+                }
+            },
+            mounted() {
+                setInterval(() => {
+                    this.nowC = Date.now()
+                }, 1000);
+            },
+            methods: {
+                nowTime: function () {
+                    return Date.now()
+                }
+            }
+        })
+    </script>
+</body>
+
+</html>
