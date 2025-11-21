@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue2 props 父子传值示例</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"; padding: 24px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+        button { padding: 6px 12px; }
+        .muted { color: #666; font-size: 13px; }
+        .child { background: #f7fbff; border-color: #cfe8ff; }
+    </style>
+    
+</head>
+<body>
+    <div id="app">
+        <div class="card">
+            <h2>父组件</h2>
+            <div class="row">
+                <div>
+                    <div>父标题：<strong>{{ parentTitle }}</strong></div>
+                    <div>父计数：<strong>{{ parentCount }}</strong></div>
+                    <div>父用户：<strong>{{ user.name }}</strong>（{{ user.age }}岁）</div>
+                </div>
+                <div>
+                    <button @click="parentCount++">父组件修改 count++</button>
+                    <button @click="parentTitle = parentTitle + '★'">父组件修改标题</button>
+                    <button @click="user.age++">父组件修改 user.age++</button>
+                </div>
+            </div>
+            <p class="muted">下方子组件接收父组件的 `title`、`initial-count`、`user`，并在交互后把最新的 `count` 通过事件回传。</p>
+        </div>
+
+        <div class="card child">
+            <!-- 通过 props 传值，同时监听子组件的自定义事件 -->
+            <child-counter
+                :title="parentTitle"
+                :initial-count="parentCount"
+                :user="user"
+                @update:count="handleChildCountUpdate"
+                @greet="handleGreet"
+            ></child-counter>
+        </div>
+        
+        <div class="card">
+            <h2>父组件事件日志</h2>
+            <div class="row">
+                <button @click="clearParentLogs">清除日志</button>
+            </div>
+            <ul class="muted">
+                <li v-for="(log, i) in eventLogs" :key="'p'+i">{{ log }}</li>
+                <li v-if="!eventLogs.length" class="muted">暂无日志</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>学习笔记：props、计算属性、侦听器的关系</h2>
+            <p class="muted">下面总结本页面示例中涉及到的关键知识点，便于学习与复习。</p>
+
+            <h3>1）props 的作用与原则</h3>
+            <ul>
+                <li>父组件通过 <code>props</code> 将数据<strong>下行</strong>传递给子组件，体现单向数据流。</li>
+                <li>子组件<strong>不要直接修改</strong>传入的 <code>props</code>；如需本地可变状态，请在 <code>data</code> 中建立副本，并通过事件将变更<strong>上行</strong>通知父组件。</li>
+                <li>为 <code>props</code> 声明 <code>type</code>、<code>required</code>、<code>default</code>、<code>validator</code> 可提升健壮性。</li>
+            </ul>
+            <pre><code>/* 子组件建立本地副本并保持同步 */
+data() {
+  return { currentCount: this.initialCount }
+}
+watch: {
+  initialCount(newVal) { this.currentCount = newVal }
+}
+// 用户交互后通过事件上行
+this.$emit('update:count', this.currentCount)</code></pre>
+
+            <h3>2）计算属性 vs 侦听器</h3>
+            <ul>
+                <li><strong>计算属性</strong>：用于从现有响应式源（如 <code>props</code>、<code>data</code>）派生“展示用的值”，带缓存；依赖源变更时会<strong>失效</strong>并在下次访问时重新计算。</li>
+                <li><strong>侦听器（watch）</strong>：用于<strong>副作用</strong>（调用接口、写日志、与外部交互）；侦听源变更时触发回调。</li>
+                <li>侦听“计算属性”时只有当<strong>计算结果</strong>变化才会触发；底层源变了但结果未变则不会触发。</li>
+            </ul>
+            <pre><code>computed: {
+  userLabel() { return this.user.name + '（' + this.user.age + '岁）' }
+},
+watch: {
+  // 侦听计算属性：仅在最终值变化时触发
+  userLabel(newVal, oldVal) { /* 执行副作用 */ }
+}</code></pre>
+
+            <h3>3）侦听对象的深度（deep）与立即触发（immediate）</h3>
+            <ul>
+                <li>浅侦听只在对象引用改变时触发；对嵌套属性（如 <code>user.age</code>）的修改不会触发。</li>
+                <li><code>deep: true</code> 可侦听到嵌套变更，但有性能开销，谨慎使用。</li>
+                <li><code>immediate: true</code> 会在侦听器注册后立即触发一次，适合初始化副作用。</li>
+            </ul>
+            <pre><code>watch: {
+  user: {
+    handler(newVal, oldVal) { /* 处理嵌套属性变化 */ },
+    deep: true,
+    immediate: true
+  }
+}</code></pre>
+
+            <h3>4）更新与渲染时机</h3>
+            <ul>
+                <li>依赖 <code>props</code> 的计算属性会在渲染前被重新求值，保证模板显示的是最新值。</li>
+                <li>侦听器在同一更新周期中被调度触发；涉及 DOM 的读写应放在 <code>$nextTick</code> 中。</li>
+            </ul>
+            <pre><code>this.$nextTick(function () {
+  // 此处读取/修改 DOM 更安全
+})</code></pre>
+
+            <h3>5）避免循环更新与抖动</h3>
+            <ul>
+                <li>在侦听器中上行 <code>$emit</code> 更新父组件时，做<strong>差异判断</strong>（值未变则不触发）。</li>
+                <li>必要时为高频变更添加<strong>节流/防抖</strong>，避免频繁回流。</li>
+            </ul>
+            <pre><code>watch: {
+  currentCount(newVal, oldVal) {
+    if (newVal !== oldVal) this.$emit('update:count', newVal)
+  }
+}</code></pre>
+
+            <h3>6）Vue2 的 v-model 与 .sync</h3>
+            <ul>
+                <li><code>v-model</code> 语法糖：子组件约定 <code>value</code> 作为 <code>prop</code>，通过 <code>input</code> 事件上行。</li>
+                <li><code>.sync</code> 语法糖：等价于 <code>update:xxx</code> 事件的双向绑定。</li>
+            </ul>
+            <pre><code>// v-model 约定
+Vue.component('my-input', {
+  props: { value: String },
+  methods: { update(v) { this.$emit('input', v) } },
+  template: '&lt;input :value="value" @input="update($event.target.value)"&gt;'
+})
+// 使用：&lt;my-input v-model="username"&gt;&lt;/my-input&gt;
+
+// .sync 用法
+// 父：&lt;child :count.sync="parentCount"&gt;&lt;/child&gt;
+// 子：this.$emit('update:count', newVal)</code></pre>
+
+            <h3>7）最佳实践</h3>
+            <ul>
+                <li>派生展示值用<strong>计算属性</strong>；副作用用<strong>侦听器</strong>。</li>
+                <li>尽量侦听<strong>最小必要源</strong>；避免对大对象进行 <code>deep</code> 侦听。</li>
+                <li>将 <code>props</code> 视为只读源；本地可变状态明确区分“外部驱动”和“用户交互”。</li>
+                <li>复杂依赖可先收敛成一个计算属性，再侦听该计算结果，降低复杂度。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 全局注册子组件：演示 props 接收与校验，以及通过事件把数据回传给父组件
+        Vue.component('child-counter', {
+            // props 定义：类型、默认值、必填、校验器
+            props: {
+                title: {
+                    type: String,
+                    required: false,
+                    default: '默认标题',
+                    validator: function (val) {
+                        return typeof val === 'string' && val.length >= 0
+                    }
+                },
+                initialCount: {
+                    type: Number,
+                    required: true
+                },
+                user: {
+                    type: Object,
+                    required: true,
+                    // 对象默认值在 Vue2 中必须是函数返回对象
+                    default: function () {
+                        return { name: 'Anonymous', age: 0 }
+                    }
+                }
+            },
+            data: function () {
+                return {
+                    // 局部可变状态：避免直接修改 props
+                    currentCount: this.initialCount,
+                    logs: []
+                }
+            },
+            computed: {
+                // 根据用户对象派生一个展示文本
+                userLabel: function () {
+                    return (this.user && this.user.name) ? this.user.name + '（' + this.user.age + '岁）' : '未知用户'
+                }
+            },
+            watch: {
+                // 监听父组件变更的 initialCount，保持本地 currentCount 同步并记录日志
+                initialCount: function (newVal, oldVal) {
+                    this.addLog('watch initialCount ' + (oldVal === undefined ? '∅' : oldVal) + '→' + newVal)
+                    this.currentCount = newVal
+                },
+                // 深度侦听 user，记录嵌套属性变更（含首次 immediate）
+                user: {
+                    handler: function (newVal, oldVal) {
+                        this.addLog('watch user ' + JSON.stringify(newVal))
+                    },
+                    deep: true,
+                    immediate: true
+                },
+                // 侦听计算属性的最终结果变化
+                userLabel: function (newVal, oldVal) {
+                    this.addLog('watch userLabel ' + (oldVal || '∅') + '→' + newVal)
+                },
+                // 侦听本地计数，便于观察本地与父级同步情况
+                currentCount: function (newVal, oldVal) {
+                    this.addLog('watch currentCount ' + (oldVal === undefined ? '∅' : oldVal) + '→' + newVal)
+                }
+            },
+            methods: {
+                /**
+                 * 子组件自增
+                 * 作用：更新本地计数，并通过自定义事件将最新值回传给父组件
+                 * 解决：演示「props 下行 + 事件上行」的单向数据流
+                 */
+                increment: function () {
+                    this.currentCount++
+                    this.addLog('click +1 → emit update:count ' + this.currentCount)
+                    this.$emit('update:count', this.currentCount)
+                },
+                /**
+                 * 子组件自减
+                 * 作用：更新本地计数，并通过自定义事件将最新值回传给父组件
+                 * 解决：与自增相同，保持父子数据一致
+                 */
+                decrement: function () {
+                    if (this.currentCount > 0) {
+                        this.currentCount--
+                        this.addLog('click -1 → emit update:count ' + this.currentCount)
+                        this.$emit('update:count', this.currentCount)
+                    }
+                },
+                /**
+                 * 主动向父组件发送问候
+                 * 作用：演示自定义事件可以传递任意载荷（payload）
+                 * 改动：父组件通过 @greet 监听并处理
+                 */
+                sendGreet: function () {
+                    this.addLog('emit greet payload from ' + this.user.name)
+                    this.$emit('greet', { from: this.user.name, count: this.currentCount })
+                },
+                /**
+                 * 添加一条子组件日志
+                 * 作用：在交互、侦听器触发时记录信息，便于学习观察
+                 * 改动：统一日志格式并按时间倒序展示
+                 */
+                addLog: function (message) {
+                    var ts = new Date().toLocaleTimeString()
+                    this.logs.unshift(ts + ' ' + message)
+                },
+                /**
+                 * 清空子组件日志
+                 * 作用：便于重新演示触发过程
+                 */
+                clearLogs: function () {
+                    this.logs = []
+                }
+            },
+            template: `
+                <div>
+                    <h3>子组件：{{ title }}</h3>
+                    <p>接收的用户：{{ userLabel }}</p>
+                    <p>本地计数（依据 props 初始化）：<strong>{{ currentCount }}</strong></p>
+                    <div class="row">
+                        <button @click="decrement">-1</button>
+                        <button @click="increment">+1</button>
+                        <button @click="sendGreet">向父组件问候</button>
+                    </div>
+                    <p class="muted">注意：不要直接修改 props（如直接改 \`initialCount\`），请使用本地状态并通过事件通知父组件。</p>
+                    <div class="card" style="margin-top:12px">
+                        <h4>子组件日志</h4>
+                        <div class="row">
+                            <button @click="clearLogs">清除日志</button>
+                        </div>
+                        <ul class="muted">
+                            <li v-for="(log, i) in logs" :key="'c'+i">{{ log }}</li>
+                            <li v-if="!logs.length" class="muted">暂无日志</li>
+                        </ul>
+                    </div>
+                </div>
+            `
+        })
+
+        // 根实例：充当父组件
+        var app = new Vue({
+            el: '#app',
+            data: {
+                parentTitle: '计数器示例',
+                parentCount: 2,
+                user: { name: 'Alice', age: 20 },
+                eventLogs: []
+            },
+            methods: {
+                /**
+                 * 处理子组件回传的最新计数
+                 * 作用：将子组件通过事件上行的数据写回父组件状态
+                 * 解决：保持父子状态一致，体现单向数据流
+                 */
+                handleChildCountUpdate: function (newCount) {
+                    this.parentCount = newCount
+                    var ts = new Date().toLocaleTimeString()
+                    this.eventLogs.unshift(ts + ' 收到子组件 update:count → ' + newCount)
+                },
+                /**
+                 * 处理子组件的问候事件
+                 * 作用：接收子组件传来的 payload 并展示
+                 * 改动：这里只做演示，实际项目可写业务逻辑
+                 */
+                handleGreet: function (payload) {
+                    var ts = new Date().toLocaleTimeString()
+                    this.eventLogs.unshift(ts + ' 收到子组件 greet → ' + JSON.stringify(payload))
+                    alert('来自子组件的问候：' + payload.from + '，当前计数：' + payload.count)
+                },
+                /**
+                 * 清空父组件事件日志
+                 * 作用：便于重新观察事件回流
+                 */
+                clearParentLogs: function () {
+                    this.eventLogs = []
+                }
+            }
+        })
+    </script>
+</body>
+</html>

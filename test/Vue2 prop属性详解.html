@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue2 prop 属性详解：表格 vs 表单</title>
+    <script>
+        /**
+         * 动态加载外部脚本
+         * 作用：按顺序尝试多个 CDN，解决网络环境导致的资源不可达问题
+         * 改动：避免直接引用单一 CDN；加载成功后触发回调
+         */
+        function loadScript(url) {
+            return new Promise(function (resolve, reject) {
+                var s = document.createElement('script')
+                s.src = url
+                s.async = true
+                s.onload = function () { resolve(url) }
+                s.onerror = function () { reject(new Error('load failed: ' + url)) }
+                document.head.appendChild(s)
+            })
+        }
+
+        /**
+         * 动态加载外部样式
+         * 作用：按顺序尝试多个 CDN 注入 CSS；失败不阻塞应用逻辑
+         */
+        function loadCss(url) {
+            return new Promise(function (resolve, reject) {
+                var l = document.createElement('link')
+                l.rel = 'stylesheet'
+                l.href = url
+                l.onload = function () { resolve(url) }
+                l.onerror = function () { reject(new Error('load failed: ' + url)) }
+                document.head.appendChild(l)
+            })
+        }
+
+        /**
+         * 记录引导日志
+         * 作用：在控制台输出资源加载尝试结果，便于排查
+         */
+        function bootLog(msg) {
+            try { console.info('[BOOT]', msg) } catch (e) {}
+        }
+
+        /**
+         * 资源加载引导
+         * 作用：依次尝试加载 Vue 与 Element-UI（JS/CSS）；成功后启动应用
+         * 解决：cdn 不可访问导致的 Vue 未定义问题
+         */
+        async function boot() {
+            var VUE_CDNS = [
+                'https://cdn.bootcdn.net/ajax/libs/vue/2.6.14/vue.min.js',
+                'https://cdn.jsdelivr.net/npm/vue@2/dist/vue.min.js',
+                'https://unpkg.com/vue@2/dist/vue.min.js'
+            ]
+            var ELEMENT_JS_CDNS = [
+                'https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.14/index.min.js',
+                'https://unpkg.com/element-ui/lib/index.js'
+            ]
+            var ELEMENT_CSS_CDNS = [
+                'https://cdn.bootcdn.net/ajax/libs/element-ui/2.15.14/theme-chalk/index.min.css',
+                'https://unpkg.com/element-ui/lib/theme-chalk/index.css'
+            ]
+
+            // 加载 Vue
+            for (var i = 0; i < VUE_CDNS.length && !window.Vue; i++) {
+                var urlV = VUE_CDNS[i]
+                try { await loadScript(urlV); bootLog('Vue loaded: ' + urlV) } catch (e) { bootLog(e.message) }
+            }
+            if (!window.Vue) {
+                bootLog('Vue 加载失败，请检查网络或更换 CDN')
+                return
+            }
+
+            // 加载 Element-UI CSS（不阻塞）
+            (async function () {
+                for (var j = 0; j < ELEMENT_CSS_CDNS.length; j++) {
+                    var urlC = ELEMENT_CSS_CDNS[j]
+                    try { await loadCss(urlC); bootLog('Element CSS loaded: ' + urlC); break } catch (e) { bootLog(e.message) }
+                }
+            })()
+
+            // 加载 Element-UI JS
+            for (var k = 0; k < ELEMENT_JS_CDNS.length && !window.ELEMENT; k++) {
+                var urlE = ELEMENT_JS_CDNS[k]
+                try { await loadScript(urlE); bootLog('Element JS loaded: ' + urlE) } catch (e) { bootLog(e.message) }
+            }
+            if (window.ELEMENT) {
+                try { window.Vue.use(window.ELEMENT) } catch (e) { bootLog('Vue.use(Element) 失败: ' + e.message) }
+            } else {
+                bootLog('Element-UI 加载失败，将影响 UI 展示与消息提示')
+            }
+
+            // 启动应用
+            if (typeof window.__bootstrapApp === 'function') {
+                window.__bootstrapApp()
+            } else {
+                bootLog('__bootstrapApp 未定义')
+            }
+        }
+
+        // DOM 就绪后启动引导
+        document.addEventListener('DOMContentLoaded', boot)
+    </script>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji"; padding: 24px; }
+        .page-title { margin-bottom: 8px; }
+        .muted { color: #666; font-size: 13px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .warn { color: #c45656; }
+        .ok { color: #529b2e; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h1 class="page-title">Vue2 prop 属性详解</h1>
+        <p class="muted">本页对比展示两个使用场景：表格与表单的 <code>prop</code> 语义不同。</p>
+
+        <div class="card">
+            <h2>结论速览</h2>
+            <ul>
+                <li><strong>表格</strong>：<code>prop</code> 仅用于数据字段映射与展示，不参与校验。</li>
+                <li><strong>表单</strong>：<code>prop</code> 仅用于校验与错误定位，不直接影响输入控件的值来源（<code>v-model</code> 决定输入值）。</li>
+            </ul>
+        </div>
+
+        <div class="split">
+            <div class="card">
+                <h2>表格场景：prop 仅映射字段</h2>
+                <p class="muted">下表包含一个非法 Email，但 <code>prop</code> 只负责取值与展示，不会出现校验错误。</p>
+                <div class="row">
+                    <el-button type="primary" size="mini" @click="injectInvalidTableEmail">注入非法 Email</el-button>
+                    <el-button size="mini" @click="restoreTableData">恢复数据</el-button>
+                </div>
+                <el-table :data="tableData" style="width: 100%; margin-top: 12px">
+                    <el-table-column type="index" label="#" width="60"></el-table-column>
+                    <el-table-column prop="name" label="姓名" width="120"></el-table-column>
+                    <el-table-column prop="age" label="年龄" width="100"></el-table-column>
+                    <el-table-column prop="email" label="邮箱"></el-table-column>
+                </el-table>
+                <p class="muted">说明：表格 <code>el-table-column</code> 的 <code>prop</code> 仅指向行数据的字段（如 <code>row.email</code>），框架不会对其做表单校验。</p>
+            </div>
+
+            <div class="card">
+                <h2>表单场景：prop 仅用于校验与错误定位</h2>
+                <p class="muted">输入值由 <code>v-model</code> 决定；<code>prop</code> 只用于定位规则与错误消息。</p>
+                <el-form ref="form" :model="form" :rules="rules" label-position="top">
+                    <el-form-item label="邮箱（有校验）" prop="email">
+                        <el-input v-model="form.email" placeholder="请输入邮箱"></el-input>
+                    </el-form-item>
+                    <el-form-item label="年龄（有校验）" prop="age">
+                        <el-input-number v-model="form.age" :min="0" :max="120"></el-input-number>
+                    </el-form-item>
+                    <el-form-item label="仅展示用输入（无校验）" prop="showOnly">
+                        <el-input v-model="showOnlyText" placeholder="此输入与 rules 无关联"></el-input>
+                        <div class="muted">此处的 <code>prop=showOnly</code> 未在 <code>rules</code> 中声明，因此不会出现错误提示。</div>
+                    </el-form-item>
+                    <div class="row">
+                        <el-button type="primary" @click="validateForm">校验</el-button>
+                        <el-button @click="clearValidate">清除校验</el-button>
+                        <el-button @click="resetForm">重置表单</el-button>
+                    </div>
+                </el-form>
+                <p class="muted">说明：<code>el-form-item</code> 的 <code>prop</code> 用于绑定规则与定位错误消息；输入值由控件的 <code>v-model</code> 决定，两者职责严格分离。</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>要点总结</h2>
+            <ul>
+                <li><strong>表格</strong>：<code>prop</code> = 字段路径（取值与展示），不触发或参与表单校验。</li>
+                <li><strong>表单</strong>：<code>prop</code> = 规则定位键；错误消息会显示在对应的 <code>el-form-item</code> 下；输入值绑定用 <code>v-model</code>。</li>
+                <li>若 <code>prop</code> 不在 <code>rules</code> 中，就不会进行校验（如上面的“仅展示用输入”）。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 启动应用
+         * 作用：在 Vue 与 Element-UI 资源成功加载后，创建根实例并挂载
+         * 解决：资源加载时序问题导致的 Vue 未定义错误
+         */
+        window.__bootstrapApp = function () {
+            // 根实例：组织表格与表单两种场景，演示 prop 的不同语义
+            var app = new Vue({
+                el: '#app',
+                data: {
+                    // 表格数据：演示 prop 仅用于展示
+                    tableData: [
+                        { name: 'Alice', age: 20, email: 'alice@example.com' },
+                        { name: 'Bob', age: 28, email: 'bob@example.com' },
+                        { name: 'Cindy', age: 32, email: 'cindy@example.com' }
+                    ],
+                    // 表单模型：演示 prop 仅用于校验和错误定位
+                    form: {
+                        email: '',
+                        age: null,
+                        // 为了避免潜在报错，这里也提供 showOnly 字段，但它不参与 rules
+                        showOnly: ''
+                    },
+                    // 非校验输入的独立值：与 showOnly 的 prop 无关
+                    showOnlyText: '',
+                    // 表单规则：仅对 email 与 age 校验；showOnly 未声明规则
+                    rules: {
+                        email: [
+                            { required: true, message: '邮箱必填', trigger: 'blur' },
+                            { type: 'email', message: '邮箱格式不正确', trigger: ['blur', 'change'] }
+                        ],
+                        age: [
+                            { required: true, message: '年龄必填', trigger: 'change' },
+                            {
+                                // 自定义年龄校验：演示函数级注释与副作用
+                                /**
+                                 * 年龄校验器
+                                 * 作用：校验数值是否在合理区间
+                                 * 解决：展示自定义规则如何与 prop=age 绑定
+                                 */
+                                validator: function (rule, value, callback) {
+                                    if (value === undefined || value === null) {
+                                        callback(new Error('请输入年龄'))
+                                    } else if (value < 0 || value > 120) {
+                                        callback(new Error('年龄需在 0-120 之间'))
+                                    } else {
+                                        callback()
+                                    }
+                                },
+                                trigger: 'change'
+                            }
+                        ]
+                    }
+                },
+                methods: {
+                    /**
+                     * 注入非法的 Email 到表格第一行
+                     * 作用：展示表格的 prop 仅负责展示，非法值不会触发表单校验或错误提示
+                     * 改动：将第一行的 email 改为不符合格式的字符串
+                     */
+                    injectInvalidTableEmail: function () {
+                        if (!this.tableData.length) return
+                        this.tableData = this.tableData.slice() // 保持响应式
+                        this.tableData[0] = Object.assign({}, this.tableData[0], { email: 'not-an-email' })
+                        if (this.$message) this.$message({ type: 'warning', message: '已注入非法 Email 到表格第一行（仅展示，不校验）' })
+                    },
+                    /**
+                     * 恢复表格数据到合法 Email
+                     * 作用：便于对比观察 prop 的展示职责
+                     */
+                    restoreTableData: function () {
+                        this.tableData = [
+                            { name: 'Alice', age: 20, email: 'alice@example.com' },
+                            { name: 'Bob', age: 28, email: 'bob@example.com' },
+                            { name: 'Cindy', age: 32, email: 'cindy@example.com' }
+                        ]
+                        if (this.$message) this.$message({ type: 'success', message: '表格数据已恢复' })
+                    },
+                    /**
+                     * 触发表单校验
+                     * 作用：根据 el-form-item 的 prop 键查找 rules 并进行校验，错误在对应项下显示
+                     * 解决：强调 prop 仅用于校验与错误定位，输入值来源由 v-model 决定
+                     */
+                    validateForm: function () {
+                        var self = this
+                        if (!this.$refs.form || !this.$refs.form.validate) {
+                            alert('Element-UI 未加载，无法执行内置校验。请检查网络或更换可用 CDN。')
+                            return
+                        }
+                        this.$refs.form.validate(function (valid) {
+                            if (valid) {
+                                self.$message ? self.$message({ type: 'success', message: '校验通过' }) : alert('校验通过')
+                            } else {
+                                self.$message ? self.$message({ type: 'error', message: '校验未通过，请检查标红项' }) : alert('校验未通过，请检查标红项')
+                            }
+                        })
+                    },
+                    /**
+                     * 清除表单校验提示
+                     * 作用：移除所有错误定位与提示，便于重新尝试
+                     */
+                    clearValidate: function () {
+                        if (!this.$refs.form || !this.$refs.form.clearValidate) {
+                            alert('Element-UI 未加载，无法清除校验提示。')
+                            return
+                        }
+                        this.$refs.form.clearValidate()
+                        this.$message ? this.$message({ message: '已清除校验提示', type: 'info' }) : void 0
+                    },
+                    /**
+                     * 重置表单
+                     * 作用：恢复模型初始值，清除校验状态；与仅展示输入无关
+                     */
+                    resetForm: function () {
+                        this.form.email = ''
+                        this.form.age = null
+                        this.form.showOnly = ''
+                        this.showOnlyText = ''
+                        if (this.$refs.form && this.$refs.form.clearValidate) this.$refs.form.clearValidate()
+                    }
+                }
+            })
+        }
+    </script>
+</body>
+</html>
