@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .a .b .c {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="a">
+        <div>...中间隔了一层...</div>
+        <div class="b">
+            <span>...中间又隔了一层...</span>
+            <div class="c">
+                这里的文字依然会变红！
+            </div>
+        </div>
+    </div>
+
+    <div class="a">
+    <div class="other">
+        <div>缺少了 b，所以里面的 c 不会被选中</div>
+        <div class="c">
+            这里的文字不会变色
+        </div>
+    </div>
+    <p>
+总结<br>
+.a .b .c 是分层级的。
+它限制了 .c 的出现环境（必须被 .b 包裹，且 .b 被 .a 包裹）。
+它不要求直接父子，只要是后代即可。</p>
+</div>
+</body>
+
+</html>

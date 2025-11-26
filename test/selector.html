@@ -373,7 +373,7 @@
                 <div class="example" data-selector="#content .card" data-css="#content .card { /* 后代选择器 */ }">
                     <div class="name">后代选择器</div>
                     <div class="css">#content .card</div>
-                    <div class="note">匹配某祖先下的任意后代（包括深层）</div>
+                    <div class="note">匹配某祖先下的任意后代（包括深层），但若是类似.a .b .c{}它限制了 .c 的出现环境（必须被 .b 包裹，且 .b 被 .a 包裹）。</div>
                 </div>
                 <div class="example" data-selector=".card > .title" data-css=".card > .title { /* 子代选择器 */ }">
                     <div class="name">子代选择器</div>
